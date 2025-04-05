@@ -10,11 +10,11 @@ import math
 from collections import defaultdict
 
 # Set the root directory
-# root_dir = 'data/20250402_pulse_height_vary'
-root_dir = 'data/20250403'
+# root_dir = 'photon_counts_data/20250402_pulse_height_vary'
+root_dir = 'photon_counts_data/20250403'
 crop_off = 3650
 
-# Dictionaries to hold data grouped by duration (like '20s', '60s') and channel
+# Dictionaries to hold photon_counts_data grouped by duration (like '20s', '60s') and channel
 ch0_by_duration = defaultdict(list)
 ch1_by_duration = defaultdict(list)
 

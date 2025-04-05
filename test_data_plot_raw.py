@@ -2,8 +2,8 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Path to the top-level 'data' folder
-root_dir = "data"
+# Path to the top-level 'photon_counts_data' folder
+root_dir = "photon_counts_data"
 
 for folder in os.listdir(root_dir):
     if folder.startswith("SiPM_TTL_"):

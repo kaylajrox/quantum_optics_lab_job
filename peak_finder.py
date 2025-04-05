@@ -4,11 +4,11 @@ from scipy.signal import find_peaks
 
 # crop ADC channels we are not using
 
-file_path_CH0 = "data/20250402_pulse_height_vary/1_2V_20s/CH0@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
-file_path_CH1 = "data/20250402_pulse_height_vary/1_2V_20s/CH1@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
+file_path_CH0 = "photon_counts_data/20250402_pulse_height_vary/1_2V_20s/CH0@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
+file_path_CH1 = "photon_counts_data/20250402_pulse_height_vary/1_2V_20s/CH1@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
 
 
-# Example data (use your real data here)
+# Example photon_counts_data (use your real photon_counts_data here)
 energies_CH1 = np.loadtxt(file_path_CH0)  # assuming one value per line
 
 energies_CH1_cropped = energies_CH1[:-3850]

@@ -2,11 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from lmfit import Model, Parameters
 
-file_path_CH0 = "data/20250402_pulse_height_vary/1_2V_20s/CH0@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
-file_path_CH1 = "data/20250402_pulse_height_vary/1_2V_20s/CH1@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
+file_path_CH0 = "photon_counts_data/20250402_pulse_height_vary/1_2V_20s/CH0@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
+file_path_CH1 = "photon_counts_data/20250402_pulse_height_vary/1_2V_20s/CH1@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
 
 
-# --- Load your data ---
+# --- Load your photon_counts_data ---
 energies_CH1 = np.loadtxt(file_path_CH0)
   # One y value per line
 

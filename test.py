@@ -8,11 +8,11 @@ from scipy.signal import find_peaks
 import math
 
 # Set the root directory
-root_dir = 'data/20250403'
+root_dir = 'photon_counts_data/20250403'
 crop_off = 3700
 vertical_lines = False
 
-# Dictionaries to hold data grouped by duration and channel
+# Dictionaries to hold photon_counts_data grouped by duration and channel
 ch0_by_duration = defaultdict(list)
 ch1_by_duration = defaultdict(list)
 
@@ -96,12 +96,12 @@ generate_distance_tables_by_duration(ch1_by_duration, "CH1")
 # from scipy.signal import find_peaks
 #
 # # Set the root directory
-# # root_dir = 'data/20250402_pulse_height_vary'
-# root_dir = 'data/20250403'
+# # root_dir = 'photon_counts_data/20250402_pulse_height_vary'
+# root_dir = 'photon_counts_data/20250403'
 # crop_off = 3700
 # vertical_lines = False
 #
-# # Dictionaries to hold data grouped by duration (like '20s', '60s') and channel
+# # Dictionaries to hold photon_counts_data grouped by duration (like '20s', '60s') and channel
 # ch0_by_duration = defaultdict(list)
 # ch1_by_duration = defaultdict(list)
 #
@@ -118,15 +118,15 @@ generate_distance_tables_by_duration(ch1_by_duration, "CH1")
 #     return file_name  # Default to the filename if not matching the pattern
 #
 #
-# def find_and_label_peaks(data, ax, label, crop_off, vertical_lines=vertical_lines):
+# def find_and_label_peaks(photon_counts_data, ax, label, crop_off, vertical_lines=vertical_lines):
 #     # Apply cropping
-#     data_cropped = data[:-crop_off]
+#     data_cropped = photon_counts_data[:-crop_off]
 #     x = np.arange(len(data_cropped))
 #
 #     # Find peaks
 #     peaks, properties = find_peaks(data_cropped, height=0.5, distance=15)  # Adjust height and distance as needed
 #
-#     # Plot the data and peaks
+#     # Plot the photon_counts_data and peaks
 #     ax.plot(x, data_cropped, label=label, alpha=0.7)
 #     ax.scatter(x[peaks], data_cropped[peaks], color='red', label='Peaks')
 #
@@ -148,7 +148,7 @@ generate_distance_tables_by_duration(ch1_by_duration, "CH1")
 #     for i in range(1, len(peaks)):
 #         distance.append(x[peaks[i]] - x[peaks[i - 1]])  # Properly append distances
 #
-#     return distance, peaks, data_cropped  # Return the peaks and cropped data for optional printing
+#     return distance, peaks, data_cropped  # Return the peaks and cropped photon_counts_data for optional printing
 #
 # # Walk through the directory tree
 # for subdir, _, files in os.walk(root_dir):
@@ -159,13 +159,13 @@ generate_distance_tables_by_duration(ch1_by_duration, "CH1")
 #             file_path = os.path.join(subdir, file)
 #             try:
 #                 if file.startswith("CH0"):
-#                     data = np.loadtxt(file_path, delimiter=',')
+#                     photon_counts_data = np.loadtxt(file_path, delimiter=',')
 #                     label = os.path.relpath(file_path, root_dir)
-#                     ch0_by_duration[duration_key].append((data, label))
+#                     ch0_by_duration[duration_key].append((photon_counts_data, label))
 #                 elif file.startswith("CH1"):
-#                     data = np.loadtxt(file_path, delimiter=',')
+#                     photon_counts_data = np.loadtxt(file_path, delimiter=',')
 #                     label = os.path.relpath(file_path, root_dir)
-#                     ch1_by_duration[duration_key].append((data, label))
+#                     ch1_by_duration[duration_key].append((photon_counts_data, label))
 #             except Exception as e:
 #                 print(f"Error loading {file_path}: {e}")
 #
@@ -178,13 +178,13 @@ generate_distance_tables_by_duration(ch1_by_duration, "CH1")
 #         fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 4 * n_rows))
 #         axes = axes.flatten()
 #
-#         for idx, (data, label) in enumerate(data_list):
+#         for idx, (photon_counts_data, label) in enumerate(data_list):
 #             ax = axes[idx]
 #             # Extract voltage-based title from the label
 #             title = extract_voltage_and_title(label)
 #
 #             # Find peaks and label them on the plot
-#             distance, peaks, cropped_data = find_and_label_peaks(data, ax, title, crop_off)
+#             distance, peaks, cropped_data = find_and_label_peaks(photon_counts_data, ax, title, crop_off)
 #
 #             # Print distances with the title of the subplot (which includes the voltage)
 #             for i in range(1, len(peaks)):

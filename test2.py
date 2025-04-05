@@ -12,12 +12,12 @@ from collections import defaultdict
 from scipy.signal import find_peaks
 
 # Set the root directory
-# root_dir = 'data/20250402_pulse_height_vary'
-root_dir = 'data/20250403'
+# root_dir = 'photon_counts_data/20250402_pulse_height_vary'
+root_dir = 'photon_counts_data/20250403'
 crop_off = 3700
 vertical_lines = False
 
-# Dictionaries to hold data grouped by duration (like '20s', '60s') and channel
+# Dictionaries to hold photon_counts_data grouped by duration (like '20s', '60s') and channel
 ch0_by_duration = defaultdict(list)
 ch1_by_duration = defaultdict(list)
 
@@ -42,7 +42,7 @@ def find_and_label_peaks(data, ax, label, crop_off, vertical_lines=vertical_line
     # Find peaks
     peaks, properties = find_peaks(data_cropped, height=0.5, distance=15)  # Adjust height and distance as needed
 
-    # Plot the data and peaks
+    # Plot the photon_counts_data and peaks
     ax.plot(x, data_cropped, label=label, alpha=0.7)
     ax.scatter(x[peaks], data_cropped[peaks], color='red', label='Peaks')
 
@@ -64,7 +64,7 @@ def find_and_label_peaks(data, ax, label, crop_off, vertical_lines=vertical_line
     for i in range(1, len(peaks)):
         distance.append(x[peaks[i]] - x[peaks[i - 1]])  # Properly append distances
 
-    return distance, peaks, data_cropped  # Return the peaks and cropped data for optional printing
+    return distance, peaks, data_cropped  # Return the peaks and cropped photon_counts_data for optional printing
 
 # Walk through the directory tree
 for subdir, _, files in os.walk(root_dir):
