@@ -1,0 +1,9 @@
+/.idea
+/tests
+/.ipynb_checkpoints
+*.log
+*.pkl
+/sandbox
+*.svg
+*.pdf
+*.png
