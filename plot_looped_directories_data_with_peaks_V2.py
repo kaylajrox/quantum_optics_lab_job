@@ -26,7 +26,7 @@ import math
 root_dir = 'photon_counts_data/20250403'
 crop_off = 3700
 vertical_lines = False
-counts_threshold = 35
+counts_threshold = 100
 peak_spacing_threshold = 15
 experiment_duration_analysize = "300s"
 
@@ -45,18 +45,19 @@ ch1_by_duration = defaultdict(list)
 duration_pattern = re.compile(r'(\d+)s$')
 
 # Function to extract voltage and format the title
-def extract_voltage_and_title(file_name):
+def extract_gain_voltage_and_title(file_name):
     match = re.match(r"(\d+)_?(\d+)_gain", file_name)
     if match:
-        voltage = float(f"{match.group(1)}.{match.group(2)}")  # Create voltage like 65.5V
-        return f"{voltage}V gain"
+        gain_voltage = float(f"{match.group(1)}.{match.group(2)}")  # Create voltage like 65.5V
+        return gain_voltage,f"{gain_voltage}V gain"
     return file_name  # Default to the filename if not matching the pattern
+
 
 def analyze_peaks(data_dict, channel_name="CH0"):
     print(f"\n--- Peak Analysis for {channel_name} ---\n")
     for duration, data_list in sorted(data_dict.items()):
         for data, label in data_list:
-            title = extract_voltage_and_title(label)
+            gain_voltage, title = extract_gain_voltage_and_title(label)
             cropped_data = data[:-crop_off]
 
             # Find peaks (you can tweak parameters like height, distance)
@@ -141,7 +142,7 @@ def plot_grouped_subplots(data_dict, title_prefix, n_cols=3):
 
         for idx, (data, label) in enumerate(data_list):
             ax = axes[idx]
-            title = extract_voltage_and_title(label)
+            gain_voltage,title = extract_gain_voltage_and_title(label)
             distance, peaks, cropped_data = find_and_label_peaks(data, ax, title, crop_off)
             distance_dict[title].append(distance)
             ax.set_title(title, fontsize=8)
