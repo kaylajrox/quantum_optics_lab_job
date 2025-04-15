@@ -13,7 +13,7 @@ from scipy.signal import find_peaks
 
 # Set the root directory
 # root_dir = 'photon_counts_data/20250402_pulse_height_vary'
-root_dir = 'photon_counts_data/20250403'
+root_dir = '../photon_counts_data/20250403'
 crop_off = 3700
 vertical_lines = False
 

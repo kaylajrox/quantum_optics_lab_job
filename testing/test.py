@@ -8,7 +8,7 @@ from scipy.signal import find_peaks
 import math
 
 # Set the root directory
-root_dir = 'photon_counts_data/20250403'
+root_dir = '../photon_counts_data/20250403'
 crop_off = 3700
 vertical_lines = False
 

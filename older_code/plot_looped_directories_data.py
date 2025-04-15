@@ -1,5 +1,9 @@
-import matplotlib
+'''
+Plots the data by looping through all folders and groups subplots by the experimental duration time
+which is found at the end of the name of the folder "300s" is 300 seconds, "20s" is 20 seconds
+'''
 
+import matplotlib
 matplotlib.use('TkAgg')  # For PyCharm interactivity
 
 import os
@@ -11,7 +15,7 @@ from collections import defaultdict
 
 # Set the root directory
 # root_dir = 'photon_counts_data/20250402_pulse_height_vary'
-root_dir = 'photon_counts_data/20250403'
+root_dir = '../photon_counts_data/20250403'
 crop_off = 3650
 
 # Dictionaries to hold photon_counts_data grouped by duration (like '20s', '60s') and channel
