@@ -1,3 +1,6 @@
+# import matplotlib
+# matplotlib.use('TkAgg')  # For PyCharm interactivity
+
 import os
 import re
 import numpy as np
@@ -10,7 +13,8 @@ import math
 # Set the root directory
 root_dir = 'photon_counts_data/20250403'
 crop_off = 3700
-vertical_lines = False
+vertical_lines = True
+experiment_duration_analysize = "300s"
 
 # Dictionaries to hold photon_counts_data grouped by duration and channel
 ch0_by_duration = defaultdict(list)
@@ -18,7 +22,6 @@ ch1_by_duration = defaultdict(list)
 
 # Regex to extract duration from folder names (e.g., '20s' from '1_2V_20s')
 duration_pattern = re.compile(r'(\d+)s$')
-
 
 # Function to extract voltage and format the title
 def extract_voltage_and_title(file_name):
@@ -28,6 +31,23 @@ def extract_voltage_and_title(file_name):
         return f"{voltage}V gain"
     return file_name  # Default to the filename if not matching the pattern
 
+def analyze_peaks(data_dict, channel_name="CH0"):
+    print(f"\n--- Peak Analysis for {channel_name} ---\n")
+    for duration, data_list in sorted(data_dict.items()):
+        for data, label in data_list:
+            title = extract_voltage_and_title(label)
+            cropped_data = data[:-crop_off]
+
+            # Find peaks (you can tweak parameters like height, distance)
+            peaks, _ = find_peaks(cropped_data, height=0.5)  # adjust height as needed
+
+            # Compute differences between consecutive peaks
+            peak_diffs = np.diff(peaks)
+
+            print(f"{title}:")
+            print(f"  Found peak indices: {peaks}")
+            print(f"  Differences between peaks: {peak_diffs}")
+            print()
 
 def find_and_label_peaks(data, ax, label, crop_off, vertical_lines=vertical_lines):
     # Apply cropping
@@ -67,6 +87,9 @@ for subdir, _, files in os.walk(root_dir):
     match = duration_pattern.search(os.path.basename(subdir))
     if match:
         duration_key = match.group(0)
+        if duration_key != experiment_duration_analysize:
+            continue  # Skip folders that aren't 300s
+
         for file in sorted(files):
             file_path = os.path.join(subdir, file)
             try:
@@ -97,7 +120,6 @@ def plot_grouped_subplots(data_dict, title_prefix, n_cols=3):
             title = extract_voltage_and_title(label)
             distance, peaks, cropped_data = find_and_label_peaks(data, ax, title, crop_off)
             distance_dict[title].append(distance)
-            print(distance)
             ax.set_title(title, fontsize=8)
 
         for j in range(idx + 1, len(axes)):
@@ -108,6 +130,9 @@ def plot_grouped_subplots(data_dict, title_prefix, n_cols=3):
         plt.show()
 
     return distance_dict
+
+analyze_peaks(ch0_by_duration, "CH0")
+analyze_peaks(ch1_by_duration, "CH1")
 
 
 # Get the distance photon_counts_data for CH0 and CH1 grouped by duration
@@ -135,10 +160,11 @@ for voltage, flat in flattened_distances.items():
 df_distances = pd.DataFrame(voltage_columns)
 
 # Add label column if it doesn't already exist
-if "distance between subsequent peaks" in df_distances.columns:
-    df_distances.drop(columns=["distance between subsequent peaks"], inplace=True)
+if "index of peaks" in df_distances.columns:
+    df_distances.drop(columns=["index of peaks"], inplace=True)
 
-df_distances.insert(0, "distance between subsequent peaks", range(1, len(df_distances) + 1))
+df_distances.insert(0, "index of peaks", range(1, len(df_distances) + 1))
+
 
 # Save the DataFrame as CSV
 df_distances.to_csv("distance_table.csv", index=False)
