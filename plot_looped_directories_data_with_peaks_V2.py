@@ -23,7 +23,7 @@ import math
 #===================================================
 
 # Set the root directory
-root_dir = 'photon_counts_data/20250403'
+root_dir = 'photon_counts_data/20250415_dark_light_counts_vary_gain'
 crop_off = 3700
 vertical_lines = False
 counts_threshold = 100
