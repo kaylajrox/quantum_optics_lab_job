@@ -84,7 +84,8 @@ for channel, voltages in data_by_channel.items():
 #========================================
 #         Plotting
 #========================================
-def find_and_label_peaks(data, ax, label, crop_off, color, style, vertical_lines=False):
+def find_and_label_peaks(data, ax, label, crop_off, color, style, vertical_lines=False,
+                         print_peaks=False, channel=None, gain_voltage=None, pulse_voltage=None):
     data_cropped = data[:-crop_off]
     x = np.arange(len(data_cropped))
     peaks, _ = find_peaks(data_cropped, height=counts_threshold, distance=peak_spacing_threshold)
@@ -96,7 +97,17 @@ def find_and_label_peaks(data, ax, label, crop_off, color, style, vertical_lines
         for p in peaks:
             ax.axvline(x=p, color=color, linestyle='--', linewidth=1)
 
+    if print_peaks and channel and gain_voltage is not None and pulse_voltage is not None:
+        print(f"\n[{channel}] {gain_voltage} V gain, {pulse_voltage} V pulse")
+        for i, peak_idx in enumerate(peaks):
+            count_value = data_cropped[peak_idx]
+            print(f"Peak {i + 1}: Index {peak_idx}, Counts {count_value:.2f}")
+            if i > 0:
+                diff = peak_idx - peaks[i - 1]
+                print(f"Peak {i + 1} - Peak {i} = {diff}")
+
     return peaks
+
 
 #========================================
 #         CH0 and CH1 — Separate Figures
@@ -126,7 +137,11 @@ for channel, channel_data in data_by_channel.items():
                     crop_off=crop_off,
                     color=color,
                     style=style,
-                    vertical_lines=vertical_lines
+                    vertical_lines=vertical_lines,
+                    print_peaks=(ld_type == "light"),
+                    channel=channel,
+                    gain_voltage=gain_v,
+                    pulse_voltage=pulse_v
                 )
 
         ax.set_title(f"{channel} — {gain_v} V gain, {pulse_v} V pulse", fontsize=10)
