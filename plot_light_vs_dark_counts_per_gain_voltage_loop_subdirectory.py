@@ -12,8 +12,9 @@ import math
 #========================================
 #         Parameters
 #========================================
-root_dir = 'photon_counts_data/20250415_dark_light_counts_vary_gain'
-crop_off = 3900
+root_dir = 'photon_counts_data/20250417_1_3_pulse_height'
+crop_off_start = 200
+crop_off_end = 3600
 vertical_lines = False
 counts_threshold = 100
 peak_spacing_threshold = 15
@@ -84,14 +85,17 @@ for channel, voltages in data_by_channel.items():
 #========================================
 #         Plotting
 #========================================
-def find_and_label_peaks(data, ax, label, crop_off, color, style, vertical_lines=False,
+def find_and_label_peaks(data, ax, label, crop_off_start,crop_off_end, color, style, vertical_lines=False,
                          print_peaks=False, channel=None, gain_voltage=None, pulse_voltage=None):
-    data_cropped = data[:-crop_off]
+    data_cropped = data[crop_off_start:-crop_off_end]
     x = np.arange(len(data_cropped))
     peaks, _ = find_peaks(data_cropped, height=counts_threshold, distance=peak_spacing_threshold)
 
     ax.plot(x, data_cropped, label=label, alpha=0.8, color=color, linestyle=style)
-    ax.scatter(x[peaks], data_cropped[peaks], color=color, edgecolors='black', zorder=5)
+    counts_at_peaks = data_cropped[peaks]
+    errors = np.sqrt(counts_at_peaks)  # standard error assuming Poisson
+    ax.errorbar(x[peaks], counts_at_peaks, yerr=errors, fmt='o', color=color,
+                ecolor='gray', elinewidth=1, capsize=3, markersize=5, label=f"{label} Peaks")
 
     if vertical_lines:
         for p in peaks:
@@ -134,7 +138,8 @@ for channel, channel_data in data_by_channel.items():
                     voltage_data[ld_type],
                     ax,
                     label=label,
-                    crop_off=crop_off,
+                    crop_off_start=crop_off_start,
+                    crop_off_end=crop_off_end,
                     color=color,
                     style=style,
                     vertical_lines=vertical_lines,

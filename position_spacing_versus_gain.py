@@ -30,7 +30,7 @@ p = np.poly1d(z)
 plt.plot(voltage_gains, p(voltage_gains), '--', label=f"Fit: y = {z[0]:.2f}x + {z[1]:.2f}")
 
 plt.xlabel("Gain Voltage (V)")
-plt.ylabel("Peak Index Position")
+plt.ylabel("Peak Index Spacing between 1 and 2 ")
 plt.title("Peak Position vs Gain Voltage")
 plt.grid(True)
 plt.legend()
