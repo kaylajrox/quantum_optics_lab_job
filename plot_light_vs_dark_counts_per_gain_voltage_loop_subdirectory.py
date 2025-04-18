@@ -1,6 +1,3 @@
-import matplotlib
-matplotlib.use('TkAgg')
-
 import os
 import re
 import numpy as np
@@ -8,6 +5,8 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 from scipy.signal import find_peaks
 import math
+from scipy.ndimage import gaussian_filter1d
+import csv
 
 #========================================
 #         Parameters
@@ -39,6 +38,12 @@ def extract_gain_and_pulse_voltages(file_path):
         pulse = float(f"{match.group(3)}.{match.group(4)}")
         return gain, pulse
     return None, None
+
+
+def smooth_data(data, window_size=5, sigma=1):
+    # Using a Gaussian filter to smooth the data (adjust window_size and sigma as needed)
+    return gaussian_filter1d(data, sigma=sigma)
+
 
 #========================================
 #         File Loading + Logging
@@ -85,17 +90,35 @@ for channel, voltages in data_by_channel.items():
 #========================================
 #         Plotting
 #========================================
-def find_and_label_peaks(data, ax, label, crop_off_start,crop_off_end, color, style, vertical_lines=False,
-                         print_peaks=False, channel=None, gain_voltage=None, pulse_voltage=None):
-    data_cropped = data[crop_off_start:-crop_off_end]
-    x = np.arange(len(data_cropped))
-    peaks, _ = find_peaks(data_cropped, height=counts_threshold, distance=peak_spacing_threshold)
 
-    ax.plot(x, data_cropped, label=label, alpha=0.8, color=color, linestyle=style)
-    counts_at_peaks = data_cropped[peaks]
-    errors = np.sqrt(counts_at_peaks)  # standard error assuming Poisson
+def write_peak_data_to_file(peaks, data_cropped, filename, gain_voltage, pulse_voltage):
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Voltage Gain (V)", "Pulse Voltage (V)", "Peak Number", "Peak Index", "Peak Counts", "Index Difference"])
+        for i, peak_idx in enumerate(peaks):
+            count_value = data_cropped[peak_idx]
+            if i > 0:
+                diff = peak_idx - peaks[i - 1]
+            else:
+                diff = "N/A"  # No previous peak for the first peak
+            writer.writerow([gain_voltage, pulse_voltage, i + 1, peak_idx, count_value, diff])
+    print(f"Peak data written to {filename}")
+
+def find_and_label_peaks(data, ax, label, crop_off_start,crop_off_end, color, style, vertical_lines=False,
+                         print_peaks=False, channel=None, gain_voltage=None, pulse_voltage=None, output_file=None):
+    data_cropped = data[crop_off_start:-crop_off_end]
+    smoothed_data = smooth_data(data_cropped)  # Apply smoothing here
+    x = np.arange(len(smoothed_data))
+    peaks, _ = find_peaks(smoothed_data, height=counts_threshold, distance=peak_spacing_threshold)
+
+    ax.plot(x, smoothed_data, label=label, alpha=0.8, color=color, linestyle=style)
+    counts_at_peaks = smoothed_data[peaks]
+    errors = np.sqrt(counts_at_peaks)
     ax.errorbar(x[peaks], counts_at_peaks, yerr=errors, fmt='o', color=color,
                 ecolor='gray', elinewidth=1, capsize=3, markersize=5, label=f"{label} Peaks")
+
+    if output_file:  # Write to file if filename is provided
+        write_peak_data_to_file(peaks, smoothed_data, output_file, gain_voltage, pulse_voltage)
 
     if vertical_lines:
         for p in peaks:
@@ -104,7 +127,7 @@ def find_and_label_peaks(data, ax, label, crop_off_start,crop_off_end, color, st
     if print_peaks and channel and gain_voltage is not None and pulse_voltage is not None:
         print(f"\n[{channel}] {gain_voltage} V gain, {pulse_voltage} V pulse")
         for i, peak_idx in enumerate(peaks):
-            count_value = data_cropped[peak_idx]
+            count_value = smoothed_data[peak_idx]
             print(f"Peak {i + 1}: Index {peak_idx}, Counts {count_value:.2f}")
             if i > 0:
                 diff = peak_idx - peaks[i - 1]
@@ -116,6 +139,8 @@ def find_and_label_peaks(data, ax, label, crop_off_start,crop_off_end, color, st
 #========================================
 #         CH0 and CH1 — Separate Figures
 #========================================
+output_file = "peak_data.csv"  # specify the file path where you want to store the data
+
 for channel, channel_data in data_by_channel.items():
     voltages_sorted = sorted(channel_data.keys())
     n_voltages = len(voltages_sorted)
@@ -146,7 +171,8 @@ for channel, channel_data in data_by_channel.items():
                     print_peaks=(ld_type == "light"),
                     channel=channel,
                     gain_voltage=gain_v,
-                    pulse_voltage=pulse_v
+                    pulse_voltage=pulse_v,
+                    output_file=f"peak_data_{gain_v}_{pulse_v}.csv"  # Different file for each plot
                 )
 
         ax.set_title(f"{channel} — {gain_v} V gain, {pulse_v} V pulse", fontsize=10)
