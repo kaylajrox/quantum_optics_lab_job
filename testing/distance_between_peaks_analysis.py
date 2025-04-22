@@ -10,7 +10,7 @@ from collections import defaultdict
 from scipy.signal import find_peaks
 import math
 
-root_dir = '../photon_counts_data/20250403'
+root_dir = '../data_photon_counts/20250403'
 crop_off = 3500
 vertical_lines = True
 counts_threshold = 10

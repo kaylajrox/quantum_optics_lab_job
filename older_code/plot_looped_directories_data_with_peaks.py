@@ -1,3 +1,10 @@
+'''
+Plots peaks with variable vertical lines to turn on and off and varibale threshold based on the
+counts and the spacing between the initial two peaks.
+
+chooses which experiment duration to plot. Saves all
+
+'''
 
 
 import matplotlib
@@ -7,23 +14,35 @@ import os
 import re
 import numpy as np
 import matplotlib.pyplot as plt
-import math
 from collections import defaultdict
 from scipy.signal import find_peaks
+import math
+
+#===================================================
+#        User set parameters here only
+#===================================================
 
 # Set the root directory
-# root_dir = 'data_photon_counts/20250402_pulse_height_vary'
 root_dir = '../data_photon_counts/20250403'
 crop_off = 3700
 vertical_lines = False
+counts_threshold = 35
+peak_spacing_threshold = 15
+experiment_duration_analysize = "300s"
 
-# Dictionaries to hold data_photon_counts grouped by duration (like '20s', '60s') and channel
+
+
+#========================================================
+#========================================================
+#========================================================
+
+
+# Dictionaries to hold data_photon_counts grouped by duration and channel
 ch0_by_duration = defaultdict(list)
 ch1_by_duration = defaultdict(list)
 
 # Regex to extract duration from folder names (e.g., '20s' from '1_2V_20s')
 duration_pattern = re.compile(r'(\d+)s$')
-
 
 # Function to extract voltage and format the title
 def extract_voltage_and_title(file_name):
@@ -33,6 +52,23 @@ def extract_voltage_and_title(file_name):
         return f"{voltage}V gain"
     return file_name  # Default to the filename if not matching the pattern
 
+def analyze_peaks(data_dict, channel_name="CH0"):
+    print(f"\n--- Peak Analysis for {channel_name} ---\n")
+    for duration, data_list in sorted(data_dict.items()):
+        for data, label in data_list:
+            title = extract_voltage_and_title(label)
+            cropped_data = data[:-crop_off]
+
+            # Find peaks (you can tweak parameters like height, distance)
+            peaks, _ = find_peaks(cropped_data, height=counts_threshold,distance=peak_spacing_threshold)  # adjust height as needed
+
+            # Compute differences between consecutive peaks
+            peak_diffs = np.diff(peaks)
+
+            print(f"{title}:")
+            print(f"  Found peak indices: {peaks}")
+            print(f"  Differences between peaks: {peak_diffs}")
+            print()
 
 def find_and_label_peaks(data, ax, label, crop_off, vertical_lines=vertical_lines):
     # Apply cropping
@@ -40,16 +76,16 @@ def find_and_label_peaks(data, ax, label, crop_off, vertical_lines=vertical_line
     x = np.arange(len(data_cropped))
 
     # Find peaks
-    peaks, properties = find_peaks(data_cropped, height=0.5, distance=15)  # Adjust height and distance as needed
+    peaks, _ = find_peaks(data_cropped, height=counts_threshold, distance=peak_spacing_threshold)
 
     # Plot the data_photon_counts and peaks
     ax.plot(x, data_cropped, label=label, alpha=0.7)
     ax.scatter(x[peaks], data_cropped[peaks], color='red', label='Peaks')
 
-    # Add a dashed vertical line at each peak
-    if vertical_lines == True:
+    # Add vertical lines if enabled
+    if vertical_lines:
         for peak in peaks:
-            ax.axvline(x=peak, color='red', linestyle='--', linewidth=1)  # Dashed red vertical line
+            ax.axvline(x=peak, color='red', linestyle='--', linewidth=1)
 
     # Label each peak
     for i, idx in enumerate(peaks):
@@ -59,18 +95,25 @@ def find_and_label_peaks(data, ax, label, crop_off, vertical_lines=vertical_line
     ax.set_ylabel("Value")
     ax.grid(True)
 
-    # Calculate and print the horizontal distance between consecutive peaks
+    # Calculate and return the horizontal distance between consecutive peaks
     distance = []
     for i in range(1, len(peaks)):
-        distance.append(x[peaks[i]] - x[peaks[i - 1]])  # Properly append distances
+        distance.append(x[peaks[i]] - x[peaks[i - 1]])
 
-    return distance, peaks, data_cropped  # Return the peaks and cropped data_photon_counts for optional printing
+    return distance, peaks, data_cropped
+
 
 # Walk through the directory tree
 for subdir, _, files in os.walk(root_dir):
+    if experiment_duration_analysize != experiment_duration_analysize:
+        continue
+
     match = duration_pattern.search(os.path.basename(subdir))
     if match:
-        duration_key = match.group(0)  # e.g. "20s", "60s"
+        duration_key = match.group(0)
+        if duration_key != experiment_duration_analysize:
+            continue  # Skip folders that aren't 300s
+
         for file in sorted(files):
             file_path = os.path.join(subdir, file)
             try:
@@ -87,6 +130,8 @@ for subdir, _, files in os.walk(root_dir):
 
 
 def plot_grouped_subplots(data_dict, title_prefix, n_cols=3):
+    distance_dict = defaultdict(list)
+
     for duration, data_list in sorted(data_dict.items()):
         n_plots = len(data_list)
         n_rows = math.ceil(n_plots / n_cols)
@@ -96,20 +141,11 @@ def plot_grouped_subplots(data_dict, title_prefix, n_cols=3):
 
         for idx, (data, label) in enumerate(data_list):
             ax = axes[idx]
-            # Extract voltage-based title from the label
             title = extract_voltage_and_title(label)
-
-            # Find peaks and label them on the plot
             distance, peaks, cropped_data = find_and_label_peaks(data, ax, title, crop_off)
-
-            # Print distances with the title of the subplot (which includes the voltage)
-            for i in range(1, len(peaks)):
-                print(f"Gain {title} - Duration {duration} - Distance between Peak {i} and Peak {i + 1}: {distance[i - 1]} units")
-
-            # Set the title for the plot
+            distance_dict[title].append(distance)
             ax.set_title(title, fontsize=8)
 
-        # Remove empty subplots if they exist
         for j in range(idx + 1, len(axes)):
             fig.delaxes(axes[j])
 
@@ -117,9 +153,14 @@ def plot_grouped_subplots(data_dict, title_prefix, n_cols=3):
         plt.tight_layout(rect=[0, 0, 1, 0.96])
         plt.show()
 
+    return distance_dict
 
-# Plot CH0 and CH1 grouped by duration
-plot_grouped_subplots(ch0_by_duration, "CH0 Files")
-plot_grouped_subplots(ch1_by_duration, "CH1 Files")
+analyze_peaks(ch0_by_duration, "CH0")
+analyze_peaks(ch1_by_duration, "CH1")
+
+
+# Get the distance data_photon_counts for CH0 and CH1 grouped by duration
+ch0_distances = plot_grouped_subplots(ch0_by_duration, "CH0 Files")
+ch1_distances = plot_grouped_subplots(ch1_by_duration, "CH1 Files")
 
 

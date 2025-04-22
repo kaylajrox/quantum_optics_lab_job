@@ -1,3 +1,7 @@
+import matplotlib
+matplotlib.use('TkAgg')  # For PyCharm interactivity
+
+
 import os
 import re
 import numpy as np
@@ -11,9 +15,12 @@ import csv
 #========================================
 #         Parameters
 #========================================
-root_dir = 'photon_counts_data/20250417_1_3_pulse_height'
+root_dir = 'data_photon_counts/20250418_1_6_pulse_height'
+#crop_off_start = 0
+#crop_off_end = 3800
+# newer lsb settings
 crop_off_start = 200
-crop_off_end = 3600
+crop_off_end = 3250
 vertical_lines = False
 counts_threshold = 100
 peak_spacing_threshold = 15
