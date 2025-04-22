@@ -15,7 +15,7 @@ import csv
 #========================================
 #         Parameters
 #========================================
-root_dir = 'data_photon_counts/20250418_1_6_pulse_height'
+root_dir = 'data_photon_counts/20250417_1_3_pulse_height'
 #crop_off_start = 0
 #crop_off_end = 3800
 # newer lsb settings
@@ -179,7 +179,7 @@ for channel, channel_data in data_by_channel.items():
                     channel=channel,
                     gain_voltage=gain_v,
                     pulse_voltage=pulse_v,
-                    output_file=f"peak_data_{gain_v}_{pulse_v}.csv"  # Different file for each plot
+                    output_file=f"generated_peak_data_with_dark/peak_data_gain_voltage{gain_v}V_pulse_height{pulse_v}V.csv"  # Different file for each plot
                 )
 
         ax.set_title(f"{channel} — {gain_v} V gain, {pulse_v} V pulse", fontsize=10)

@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('TkAgg')  # For PyCharm interactivity
+
 from pathlib import Path
 import matplotlib.pyplot as plt
 
