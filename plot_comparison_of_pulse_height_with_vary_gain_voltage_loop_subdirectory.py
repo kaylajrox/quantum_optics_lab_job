@@ -19,8 +19,8 @@ root_dirs = [
     'data_photon_counts/20250418_1_6_pulse_height'
 ]
 
-crop_off_start = 200
-crop_off_end = 3250
+crop_off_start = 100
+crop_off_end = 3000
 vertical_lines = False
 counts_threshold = 100
 peak_spacing_threshold = 15
@@ -28,8 +28,10 @@ experiment_duration_analysize = "300s"
 
 # Fixed pulse color map
 pulse_color_map = {
-    1.3: 'darkblue',
-    1.6: 'deeppink'
+    1.3: 'green',
+    1.6: 'orange'
+    # 1.3: 'darkblue',
+    # 1.6: 'deeppink'
 }
 
 #========================================
@@ -53,17 +55,27 @@ def extract_gain_and_pulse_voltages(file_path):
         return gain, pulse
     return None, None
 
-def smooth_data(data, sigma=1):
+def smooth_data(data, sigma=3.1):
     return gaussian_filter1d(data, sigma=sigma)
 
-def write_peak_data_to_file(peaks, data_cropped, filename, gain_voltage, pulse_voltage):
+def write_peak_data_to_file(peaks, data_cropped, filename, gain_voltage, pulse_voltage, channel):
+    '''
+
+    :param peaks:
+    :param data_cropped:
+    :param filename:
+    :param gain_voltage: gain voltage sent to photodiode
+    :param pulse_voltage:
+    :param channel:
+    :return:
+    '''
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["Voltage Gain (V)", "Pulse Voltage (V)", "Peak Number", "Peak Index", "Peak Counts", "Index Difference"])
+        writer.writerow(["Channel", "Voltage Gain (V)", "Pulse Voltage (V)", "Peak Number", "Peak Index", "Peak Counts", "Index Difference"])
         for i, peak_idx in enumerate(peaks):
             count_value = data_cropped[peak_idx]
             diff = peak_idx - peaks[i - 1] if i > 0 else "N/A"
-            writer.writerow([gain_voltage, pulse_voltage, i + 1, peak_idx, count_value, diff])
+            writer.writerow([channel, gain_voltage, pulse_voltage, i + 1, peak_idx, count_value, diff])
     print(f"Peak data written to {filename}")
 
 def find_and_label_peaks(data, ax, label, crop_off_start, crop_off_end, color, style,
@@ -82,7 +94,7 @@ def find_and_label_peaks(data, ax, label, crop_off_start, crop_off_end, color, s
                 ecolor='gray', elinewidth=1, capsize=3, markersize=5, label=f"{label} Peaks")
 
     if output_file:
-        write_peak_data_to_file(peaks, smoothed_data, output_file, gain_voltage, pulse_voltage)
+        write_peak_data_to_file(peaks, smoothed_data, output_file, gain_voltage, pulse_voltage, channel)
 
     if vertical_lines:
         for p in peaks:
@@ -166,7 +178,7 @@ for channel, channel_data in data_by_channel.items():
                         channel=channel,
                         gain_voltage=gain_v,
                         pulse_voltage=pulse_height_voltage_sent,
-                        output_file=f"generated_peak_data_results/peak_data_for_gain_voltage{gain_v}V_and_pulse_height{pulse_height_voltage_sent}V.csv"
+                        output_file=f"generated_peak_data_results/peak_data_{channel}_gain_{gain_v}V_pulse_{pulse_height_voltage_sent}V.csv"
                     )
 
         ax.set_title(f"{channel} — {gain_v} V gain", fontsize=10)
@@ -183,3 +195,4 @@ for channel, channel_data in data_by_channel.items():
     fig.suptitle(f"{channel} — Light Data", fontsize=18)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
+
