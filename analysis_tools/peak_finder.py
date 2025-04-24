@@ -11,7 +11,7 @@ from scipy.signal import find_peaks
 #        User set parameters here only, path to data txt file
 #======================================================================================
 
-file_path_CH = "../data_photon_counts/20250402_pulse_height_vary/1_2V_20s/CH0@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
+file_path_CH = "../data_photon_counts/test_data/20250402_pulse_height_vary/1_2V_20s/CH0@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
 #file_path_CH = "data_photon_counts/20250402_pulse_height_vary/1_2V_20s/CH1@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
 
 #===================================================

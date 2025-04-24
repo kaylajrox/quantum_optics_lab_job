@@ -45,8 +45,6 @@ ch1_by_duration = defaultdict(list)
 duration_pattern = re.compile(r'(\d+)s$')
 
 
-
-
 # Walk through the directory tree
 for subdir, _, files in os.walk(root_dir):
     if experiment_duration_analysize != experiment_duration_analysize:
