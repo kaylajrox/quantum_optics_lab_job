@@ -7,13 +7,15 @@ import matplotlib.pyplot as plt
 # Independent crop values
 crop_off_by_pulse = {
     1.3: 0,  # Crop 2 from 1.3V
-    1.6: 2   # Crop 1 from 1.6V
+    1.6: 0   # Crop 1 from 1.6V
 }
+
+CH_num = 'CH1'  # Channel to plot
 
 # Load data
 df = pd.read_csv('results_combined_peak_data.csv')
 df['Index Difference'] = pd.to_numeric(df['Index Difference'], errors='coerce')
-df = df[df['Channel (from filename)'] == 'CH1']
+df = df[df['Channel (from filename)'] == CH_num]
 
 gain_voltages = sorted(df['Gain Voltage (from filename)'].unique())
 
@@ -42,8 +44,8 @@ for gain_v in gain_voltages:
             color=color
         )
 
-    plt.title(f'CH1 — Peak Spacing vs. Peak Number (Gain = {gain_v} V)')
-    plt.xlabel('Peak Number')
+    plt.title(f'{CH_num} — Peak Spacing vs. Peak Number Difference (Gain = {gain_v} V)')
+    plt.xlabel('Spacing between Peak Number')
     plt.ylabel('Index Difference (Spacing)')
     plt.grid(True)
     plt.legend(title='Pulse Height')
