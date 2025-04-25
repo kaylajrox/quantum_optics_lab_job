@@ -23,8 +23,9 @@ crop_off_start = 100
 crop_off_end = 3000
 vertical_lines = False
 counts_threshold = 100
-peak_spacing_threshold = 15
+peak_spacing_threshold = 16
 experiment_duration_analysize = "300s"
+sigma = 3.6  # Smoothing parameter for Gaussian filter
 
 # Fixed pulse color map
 pulse_color_map = {
@@ -55,7 +56,7 @@ def extract_gain_and_pulse_voltages(file_path):
         return gain, pulse
     return None, None
 
-def smooth_data(data, sigma=3.1):
+def smooth_data(data, sigma=sigma):
     return gaussian_filter1d(data, sigma=sigma)
 
 def write_peak_data_to_file(peaks, data_cropped, filename, gain_voltage, pulse_voltage, channel):
