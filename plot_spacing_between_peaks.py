@@ -11,7 +11,7 @@ crop_off_by_pulse = {
 }
 
 # Load data
-df = pd.read_csv('combined_peak_data.csv')
+df = pd.read_csv('results_combined_peak_data.csv')
 df['Index Difference'] = pd.to_numeric(df['Index Difference'], errors='coerce')
 df = df[df['Channel (from filename)'] == 'CH1']
 
@@ -62,7 +62,7 @@ for gain_v in gain_voltages:
 # import matplotlib.pyplot as plt
 #
 # # Load combined peak data
-# df = pd.read_csv('combined_peak_data.csv')
+# df = pd.read_csv('results_combined_peak_data.csv')
 #
 # # Convert spacing values to numeric (ignore "N/A" for first peak)
 # df['Index Difference'] = pd.to_numeric(df['Index Difference'], errors='coerce')
