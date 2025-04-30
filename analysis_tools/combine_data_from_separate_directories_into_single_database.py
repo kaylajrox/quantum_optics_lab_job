@@ -6,8 +6,8 @@ import pandas as pd
 data_dir = 'generated_peak_data_results'
 
 # Output CSV filenames
-combined_output = 'results_combined_peak_data.csv'
-summary_output = 'results_first_peaks_summary.csv'
+combined_output = 'results_combined_peak_data_old.csv'
+summary_output = 'results_first_peaks_summary_old.csv'
 
 # Regex to extract channel, gain voltage, and pulse height
 pattern = re.compile(r'peak_data_(CH\d+)_gain_(\d+\.\d+)V_pulse_(\d+\.\d+)V\.csv')

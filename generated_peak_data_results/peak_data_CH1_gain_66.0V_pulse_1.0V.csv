@@ -1,0 +1,4 @@
+Timestamp,Channel,Voltage Gain (V),Pulse Voltage (V),Peak Number,Peak Index,Peak Counts,Index Difference
+2025-04-30 14:14:10,CH1,66.0,1.0,1,123,6803.181361634162,N/A
+2025-04-30 14:14:10,CH1,66.0,1.0,2,168,6419.780263149684,45
+2025-04-30 14:14:10,CH1,66.0,1.0,3,212,3835.6771540728437,44

@@ -9,7 +9,7 @@ from combine_data_from_separate_directories_into_single_database import *
 crop_off = 0
 
 # Load the summary CSV
-summary_df = pd.read_csv('results_first_peaks_summary.csv')
+summary_df = pd.read_csv('results_first_peaks_summary_old.csv')
 
 # Optional: sort to keep everything organized
 summary_df = summary_df.sort_values(
