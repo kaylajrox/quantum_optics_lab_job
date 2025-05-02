@@ -1,54 +1,213 @@
 import matplotlib
 matplotlib.use('TkAgg')  # For PyCharm interactivity
 
+from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
 from combine_data_from_separate_directories_into_single_database import *
 
-# crop off
+# Crop-off setting
 crop_off = 0
 
-# Load the summary CSV
-summary_df = pd.read_csv('results_first_peaks_summary_old.csv')
+# ✅ Your custom pulse color map
+pulse_color_map = {
+    1.0: 'black',
+    1.1: 'darkblue',
+    1.3: 'green',
+    1.6: 'orange',
+    2.0: 'deeppink',
+    2.3: 'red',
+}
 
-# Optional: sort to keep everything organized
+# Load the summary CSV
+summary_df = pd.read_csv('results_first_peaks_summary.csv')
+
+# Sort for consistent plotting
 summary_df = summary_df.sort_values(
     by=['Channel (from filename)', 'Pulse Height (from filename)', 'Gain Voltage (from filename)']
 )
 
-# Define color mapping for pulse heights
-pulse_color_map = {
-    1.3: 'green',
-    1.6: 'orange'
-}
+# Add timestamp
+current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+summary_df['Timestamp'] = current_time
 
-# Separate plots for each channel
-for channel in ['CH0', 'CH1']:
+# ✅ Reorder columns to place Timestamp first
+cols = ['Timestamp'] + [col for col in summary_df.columns if col != 'Timestamp']
+summary_df = summary_df[cols]
+
+# ✅ Save updated table
+summary_df.to_csv('results_first_peaks_summary.csv', index=False)
+print("✅ Saved updated summary with timestamp as first column.")
+
+# Detect all pulse heights
+all_pulses = sorted(summary_df['Pulse Height (from filename)'].unique())
+
+# Plot for each channel
+for channel in summary_df['Channel (from filename)'].unique():
     plt.figure(figsize=(8, 6))
 
-    for pulse_height in [1.3, 1.6]:
-        # Filter the relevant data
+    for pulse in all_pulses:
         filtered = summary_df[
             (summary_df['Channel (from filename)'] == channel) &
-            (summary_df['Pulse Height (from filename)'] == pulse_height)
+            (summary_df['Pulse Height (from filename)'] == pulse)
         ]
+
         if crop_off > 0:
             filtered = filtered.iloc[:-crop_off]
 
-        plt.plot(
-            filtered['Gain Voltage (from filename)'],
-            filtered['Peak Index'],
-            marker='o',
-            linestyle='-',
-            label=f'{pulse_height}V Pulse',
-            color=pulse_color_map[pulse_height]
-        )
-
+        if not filtered.empty:
+            color = pulse_color_map.get(pulse, 'gray')  # fallback to gray if not in map
+            plt.plot(
+                filtered['Gain Voltage (from filename)'],
+                filtered['Peak Index'],
+                marker='o',
+                linestyle='-',
+                label=f'{pulse}V Pulse',
+                color=color
+            )
 
     plt.title(f'First Peak Index vs. Gain Voltage ({channel})')
     plt.xlabel('Gain Voltage (V)')
     plt.ylabel('Peak 1 Index')
-    plt.grid(True, which='major', linestyle='-', linewidth=0.5)
+    plt.grid(True)
     plt.legend(title='Pulse Height')
     plt.tight_layout()
     plt.show()
+
+
+# import matplotlib
+# matplotlib.use('TkAgg')  # For PyCharm interactivity
+#
+# from datetime import datetime
+# import pandas as pd
+# import matplotlib.pyplot as plt
+# from combine_data_from_separate_directories_into_single_database import *
+#
+# # Crop-off setting
+# crop_off = 0
+#
+# # ✅ Your custom pulse color map
+# pulse_color_map = {
+#     1.0: 'black',
+#     1.1: 'darkblue',
+#     1.3: 'green',
+#     1.6: 'orange',
+#     2.0: 'deeppink',
+#     2.3: 'red',
+# }
+# # Load the summary CSV
+# summary_df = pd.read_csv('results_first_peaks_summary.csv')
+#
+# # Sort for consistent plotting
+# summary_df = summary_df.sort_values(
+#     by=['Channel (from filename)', 'Pulse Height (from filename)', 'Gain Voltage (from filename)']
+# )
+#
+# # Add timestamp
+# current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+# summary_df['Timestamp'] = current_time
+#
+# # Save updated table
+# summary_df.to_csv('results_first_peaks_summary.csv', index=False)
+# print("✅ Saved updated summary with timestamp.")
+#
+#
+# # Detect all pulse heights
+# all_pulses = sorted(summary_df['Pulse Height (from filename)'].unique())
+#
+# # Plot for each channel
+# for channel in summary_df['Channel (from filename)'].unique():
+#     plt.figure(figsize=(8, 6))
+#
+#     for pulse in all_pulses:
+#         filtered = summary_df[
+#             (summary_df['Channel (from filename)'] == channel) &
+#             (summary_df['Pulse Height (from filename)'] == pulse)
+#         ]
+#
+#         if crop_off > 0:
+#             filtered = filtered.iloc[:-crop_off]
+#
+#         if not filtered.empty:
+#             color = pulse_color_map.get(pulse, 'gray')  # fallback to gray if not in map
+#             plt.plot(
+#                 filtered['Gain Voltage (from filename)'],
+#                 filtered['Peak Index'],
+#                 marker='o',
+#                 linestyle='-',
+#                 label=f'{pulse}V Pulse',
+#                 color=color
+#             )
+#
+#     plt.title(f'First Peak Index vs. Gain Voltage ({channel})')
+#     plt.xlabel('Gain Voltage (V)')
+#     plt.ylabel('Peak 1 Index')
+#     plt.grid(True)
+#     plt.legend(title='Pulse Height')
+#     plt.tight_layout()
+#     plt.show()
+#
+#
+#
+# # import matplotlib
+# # matplotlib.use('TkAgg')  # For PyCharm interactivity
+# # from datetime import datetime
+# # import pandas as pd
+# # import matplotlib.pyplot as plt
+# # from combine_data_from_separate_directories_into_single_database import *
+# #
+# # # Crop-off setting
+# # crop_off = 0
+# #
+# # # Load the summary CSV
+# # summary_df = pd.read_csv('results_first_peaks_summary.csv')
+# #
+# # # Optional: sort to keep everything organized
+# # summary_df = summary_df.sort_values(
+# #     by=['Channel (from filename)', 'Pulse Height (from filename)', 'Gain Voltage (from filename)']
+# # )
+# #
+# # # ✅ Add current timestamp to each row
+# # current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+# # summary_df['Timestamp'] = current_time
+# #
+# # # ✅ Save updated table back (or to a new file if preferred)
+# # summary_df.to_csv('results_first_peaks_summary.csv', index=False)
+# # print("✅ Saved updated summary with timestamp to: results_first_peaks_summary.csv")
+# #
+# # pulse_color_map = {
+# #     1.0: 'black',
+# #     1.1: 'darkblue',
+# #     1.3: 'green',
+# #     1.6: 'orange',
+# #     2.0: 'deeppink',
+# #     2.3: 'red',
+# # }
+# # # Separate plots for each channel
+# # for channel in ['CH0', 'CH1']:
+# #     plt.figure(figsize=(8, 6))
+# #
+# #     for pulse_height in [1.3, 1.6]:
+# #         filtered = summary_df[
+# #             (summary_df['Channel (from filename)'] == channel) &
+# #             (summary_df['Pulse Height (from filename)'] == pulse_height)
+# #         ]
+# #         if crop_off > 0:
+# #             filtered = filtered.iloc[:-crop_off]
+# #
+# #         plt.plot(
+# #             filtered['Gain Voltage (from filename)'],
+# #             filtered['Peak Index'],
+# #             marker='o',
+# #             linestyle='-',
+# #             label=f'{pulse_height}V Pulse',
+# #             color=pulse_color_map[pulse_height]
+# #         )
+# #
+# #     plt.title(f'First Peak Index vs. Gain Voltage ({channel})')
+# #     plt.xlabel('Gain Voltage (V)')
+# #     plt.ylabel('Peak 1 Index')
+# #     plt.grid(True, which='major', linestyle='-', linewidth=0.5)
+# #     plt.legend(title='Pulse Height')
+# #     plt.tight_layout()
+# #     plt.show()

@@ -1,4 +1,4 @@
-
+# REMOVE or comment this line when running in a headless environment (like here)
 import matplotlib
 matplotlib.use('TkAgg')  # For PyCharm interactivity
 
@@ -13,100 +13,75 @@ from scipy.ndimage import gaussian_filter1d
 import csv
 from datetime import datetime
 
-
 # ========================================
 #         Parameters
 # ========================================
 data_dir = 'data_photon_counts/20250428_more_light'
 
-# Optional: Limit which pulse voltages to include (set to None to include all)
-pulse_voltages_to_plot = [1.0,1.3, 1.6,2.0]  # <- Edit this as needed
-# pulse_voltages_to_plot = None      # <- Uncomment to include all
+pulse_voltages_to_plot = [1.0, 1.3, 1.6, 2.0,2.3]  # <- Edit this as needed
+gain_voltages_to_plot = [65.7, 65.8,65.9,66.0] # <- Edit this list as needed
 
 crop_off_start = 100
 crop_off_end = 2800
 vertical_lines = False
 counts_threshold = 100
 peak_spacing_threshold = 16
-sigma = 3.6  # Gaussian smoothing parameter
+sigma = 3.6
 
 pulse_color_map = {
     1.0: 'black',
-    1.1: 'green',
-    1.3: 'darkblue',
-    1.6: 'deeppink',
-    2.0: 'orange',
+    1.1: 'darkblue',
+    1.3: 'green',
+    1.6: 'orange',
+    2.0: 'deeppink',
     2.3: 'red',
 }
 
-# Optional: manual peak indices for specific files
-# --- MANUAL PEAK CORRECTIONS ---
-# manual_peak_indices = {
-#     # CHANNEL, GAIN, PULSE HEIGHT
-#     # -----------------------------
-#     # CHANNEL 0
-#     ('CH0', 65.1, 1.6): [205, 223],
-#     ('CH0', 65.1, 1.3): [190],
-#
-#     ('CH0', 65.4, 1.6): [329, 356],
-#     ('CH0', 65.4, 1.3): [284],
-#
-#     ('CH0', 65.6, 1.6): [432, 469],
-#     ('CH0', 65.6, 1.3): [305,338],
-#
-#     ('CH0', 65.7, 1.6): [485, 519],
-#     ('CH0', 65.7, 1.3): [351, 388],
-#
-#     ('CH0', 65.8, 1.6): [135,557, 598],
-#     ('CH0', 65.8, 1.3): [365, 406],
-#
-#     ('CH0', 66.0, 1.6): [650, 688,740],
-#     ('CH0', 66.0, 1.3): [443, 489],
-#
-#     # CHANNEL 1
-#     ('CH1', 65.1, 1.6): [375, 410],
-#     ('CH1', 65.1, 1.3): [290, 319],
-#
-#     ('CH1', 65.4, 1.6): [461, 500,532],
-#     ('CH1', 65.4, 1.3): [363, 403,441],
-#
-#     ('CH1', 65.6, 1.6): [590, 633, 677],
-#     ('CH1', 65.6, 1.3): [378,422,462,506],
-#
-#     ('CH1', 65.7, 1.6): [566, 649],
-#     ('CH1', 65.7, 1.3): [440, 481, 523],
-#
-#     ('CH1', 65.8, 1.6): [650, 690,757],
-#     ('CH1', 65.8, 1.3): [407, 450,502],
-#
-#     ('CH1', 66.0, 1.6): [170, 679,727, 795],
-#     ('CH1', 66.0, 1.3): [427, 483, 560],
-#
-#     # Example format:
-#     # ('CH0', 55.6, 1.3): [150, 300, 450],
-#     # ('CH1', 55.6, 1.6): [200, 400],
-# }
-
-
+# settings for the 20250428_more_light data
 manual_peak_indices = {
-    ('CH0', 65.1, 1.3): [190],
-    ('CH0', 65.1, 1.6): [205, 223],
-    ('CH1', 65.1, 1.3): [290, 319],
-    ('CH1', 65.1, 1.6): [375, 410],
+    ('CH0', 65.7, 1.0): [242, 279],
+    ('CH0', 65.7, 1.3): [344, 380],
+    ('CH0', 65.7, 1.6): [415, 449,485],
+    ('CH0', 65.7, 2.0): [549, 583,616,656],
+    ('CH0', 65.8, 1.0): [250,289],
+    ('CH0', 65.8, 1.3): [365, 401],
+    ('CH0', 65.8, 1.6): [472, 509, 545],
+    ('CH0', 65.8, 2.0): [659, 697,733,775,810],
+    ('CH0', 65.9, 1.0): [252, 296],
+    ('CH0', 65.9, 1.3): [378, 415,461,505],
+    ('CH0', 65.9, 1.6): [491, 528, 571,609],
+    ('CH0', 65.9, 2.0): [723, 763, 798,840],
+    ('CH0', 66.0, 1.0): [256, 298,344],
+    ('CH0', 66.0, 1.3): [382, 425,470,509],
+    ('CH0', 66.0, 1.6): [521, 565, 612, 649],
+    ('CH0', 66.0, 2.0): [884, 924, 968, 1007,1044,1084,1128],
+
+
+    ('CH1', 65.7, 1.0): [260, 303,350],
+    ('CH1', 65.7, 1.3): [386, 430, 475,],
+    ('CH1', 65.7, 1.6): [519, 563,607,642],
+    ('CH1', 65.7, 2.0): [730,777,817,860,909],
+    ('CH1', 65.8, 1.0): [260, 314,358],
+    ('CH1', 65.8, 1.3): [403, 448, 497],
+    ('CH1', 65.8, 1.6): [537, 580, 627,678],
+    ('CH1', 65.8, 2.0): [809, 860,902,949],
+    ('CH1', 65.9, 1.0): [263, 316,375,440],
+    ('CH1', 65.9, 1.3): [412, 464,519,559],
+    ('CH1', 65.9, 1.6): [551, 603,694,741],
+    ('CH1', 65.9, 2.0): [838,885,941],
+    ('CH1', 66.0, 1.0): [265,328,371,429],
+    ('CH1', 66.0, 1.3): [121,419,471,521,576],
+    ('CH1', 66.0, 1.6): [582,635,684,739,794],
+    # ('CH1', 66.0, 2.0): [1044,1128],
+
 }
 
-# ========================================
-#         Data Structures
-# ========================================
 data_by_channel = {
     "CH0": defaultdict(lambda: defaultdict(list)),
     "CH1": defaultdict(lambda: defaultdict(list))
 }
 pulse_by_voltage = defaultdict(lambda: defaultdict(float))
 
-# ========================================
-#         Helper Functions
-# ========================================
 def extract_gain_and_pulse_voltages(filename):
     match = re.search(r"(\d+)_?(\d+)_gain_(\d+)_?(\d+)_pulse", filename)
     if match:
@@ -120,17 +95,12 @@ def smooth_data(data, sigma=sigma):
 
 def write_peak_data_to_file(peaks, data_cropped, filename, gain_voltage, pulse_voltage, channel):
     timestamp_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    '''
-    write data to csv file
-    '''
-
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow([
             "Timestamp", "Channel", "Voltage Gain (V)", "Pulse Voltage (V)",
             "Peak Number", "Peak Index", "Peak Counts", "Index Difference"
         ])
-
         for i, peak_idx in enumerate(peaks):
             count_value = data_cropped[peak_idx]
             diff = peak_idx - peaks[i - 1] if i > 0 else "N/A"
@@ -138,7 +108,6 @@ def write_peak_data_to_file(peaks, data_cropped, filename, gain_voltage, pulse_v
                 timestamp_str, channel, gain_voltage, pulse_voltage,
                 i + 1, peak_idx, count_value, diff
             ])
-
     print(f"Peak data written to {filename}")
 
 def find_and_label_peaks(data, ax, label, crop_off_start, crop_off_end, color, style,
@@ -184,7 +153,6 @@ for subdir, _, files in os.walk(data_dir):
             continue
 
         full_path = os.path.join(subdir, file)
-
         try:
             data = np.loadtxt(full_path, delimiter=',')
         except Exception as e:
@@ -208,38 +176,33 @@ print("\n=== Plotting Subplots and Logging Used Files ===\n")
 subplot_counter = 1
 
 for channel, channel_data in data_by_channel.items():
-    voltages_sorted = sorted(channel_data.keys())
-    n_voltages = len(voltages_sorted)
-    if n_voltages == 0:
-        print(f"[SKIP] No valid data found for {channel}.")
+    voltages_sorted = [v for v in sorted(channel_data.keys()) if gain_voltages_to_plot is None or v in gain_voltages_to_plot]
+    if not voltages_sorted:
+        print(f"[SKIP] No valid gain voltages found for {channel}.")
         continue
 
     n_cols = 2
-    n_rows = math.ceil(n_voltages / n_cols)
+    n_rows = math.ceil(len(voltages_sorted) / n_cols)
 
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 4 * n_rows))
     axes = axes.flatten()
+    subplot_idx = 0
 
-    for idx, gain_v in enumerate(voltages_sorted):
-        ax = axes[idx]
+    for gain_v in voltages_sorted:
+        ax = axes[subplot_idx]
         voltage_data = channel_data[gain_v]
 
-        print("\n------------------------------------------------")
-        print(f"Subplot {subplot_counter}: {channel} | Gain = {gain_v} V")
-
+        print(f"\n--- Subplot {subplot_counter}: {channel} | Gain = {gain_v} V ---")
         if "light" in voltage_data:
-            for data, pulse_height_voltage_sent, src in voltage_data["light"]:
-                # ⛔ Skip if pulse height not in allowed list
-                if pulse_voltages_to_plot is not None and pulse_height_voltage_sent not in pulse_voltages_to_plot:
+            for data, pulse_v, src in voltage_data["light"]:
+                if pulse_voltages_to_plot is not None and pulse_v not in pulse_voltages_to_plot:
                     continue
+                color = pulse_color_map.get(pulse_v, 'gray')
+                label = f"{pulse_v}V pulse"
+                print(f"  ➔ File: {src}, Pulse = {pulse_v}V")
 
-                color = pulse_color_map.get(pulse_height_voltage_sent, 'gray')
-                label = f"{pulse_height_voltage_sent}V pulse"
-                print(f"  ➔ File: {src}, Pulse = {pulse_height_voltage_sent}V")
-
-                manual_peaks = manual_peak_indices.get((channel, gain_v, pulse_height_voltage_sent))
-
-                output_file = f"generated_peak_data_results/peak_data_{channel}_gain_{gain_v}V_pulse_{pulse_height_voltage_sent}V.csv"
+                manual_peaks = manual_peak_indices.get((channel, gain_v, pulse_v))
+                output_file = f"generated_peak_data_results/peak_data_{channel}_gain_{gain_v}V_pulse_{pulse_v}V.csv"
 
                 find_and_label_peaks(
                     data=data,
@@ -253,7 +216,7 @@ for channel, channel_data in data_by_channel.items():
                     print_peaks=False,
                     channel=channel,
                     gain_voltage=gain_v,
-                    pulse_voltage=pulse_height_voltage_sent,
+                    pulse_voltage=pulse_v,
                     output_file=output_file,
                     manual_peaks=manual_peaks
                 )
@@ -263,12 +226,294 @@ for channel, channel_data in data_by_channel.items():
         ax.set_ylabel("Counts")
         ax.grid(True)
         ax.legend(fontsize=8)
-        subplot_counter += 1
 
-    for j in range(idx + 1, len(axes)):
+        subplot_counter += 1
+        subplot_idx += 1
+
+    for j in range(subplot_idx, len(axes)):
         fig.delaxes(axes[j])
 
     fig.suptitle(f"{channel} — Light Data", fontsize=18)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
 
+
+
+#
+# import matplotlib
+# matplotlib.use('TkAgg')  # For PyCharm interactivity
+#
+# import os
+# import re
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from collections import defaultdict
+# from scipy.signal import find_peaks
+# import math
+# from scipy.ndimage import gaussian_filter1d
+# import csv
+# from datetime import datetime
+#
+#
+# # ========================================
+# #         Parameters
+# # ========================================
+# data_dir = 'data_photon_counts/20250428_more_light'
+#
+# # Optional: Limit which pulse voltages to include on gain plots (set to None to include all)
+# pulse_voltages_to_plot = [1.0,1.3, 1.6,2.0]  # <- Edit this as needed
+# # pulse_voltages_to_plot = None      # <- Uncomment to include all
+# # Optional: Limit which gain voltages to include in subplots (set to None to include all)
+# gain_voltages_to_plot = [65.7, 65.8]  # <- Edit this list as needed
+# # gain_voltages_to_plot = None  # <- Uncomment to include all gain voltages
+#
+#
+# crop_off_start = 100
+# crop_off_end = 2800
+# vertical_lines = False
+# counts_threshold = 100
+# peak_spacing_threshold = 16
+# sigma = 3.6  # Gaussian smoothing parameter
+#
+# pulse_color_map = {
+#     1.0: 'black',
+#     1.1: 'darkblue',
+#     1.3: 'green',
+#     1.6: 'orange',
+#     2.0: 'deeppink',
+#     2.3: 'red',
+# }
+#
+# # Optional: manual peak indices for specific files
+# # --- MANUAL PEAK CORRECTIONS ---
+# manual_peak_indices = {
+# #     # CHANNEL, GAIN, PULSE HEIGHT
+# #     # -----------------------------
+# #     # CHANNEL 0
+#      ('CH0', 65.1, 1.6): [205, 223],
+# #     ('CH0', 65.1, 1.3): [190],
+# #
+# #     ('CH0', 65.4, 1.6): [329, 356],
+# #     ('CH0', 65.4, 1.3): [284],
+# #
+# #     ('CH0', 65.6, 1.6): [432, 469],
+# #     ('CH0', 65.6, 1.3): [305,338],
+# #
+# #     ('CH0', 65.7, 1.6): [485, 519],
+# #     ('CH0', 65.7, 1.3): [351, 388],
+# #
+# #     ('CH0', 65.8, 1.6): [135,557, 598],
+# #     ('CH0', 65.8, 1.3): [365, 406],
+# #
+# #     ('CH0', 66.0, 1.6): [650, 688,740],
+# #     ('CH0', 66.0, 1.3): [443, 489],
+# #
+# #     # CHANNEL 1
+# #     ('CH1', 65.1, 1.6): [375, 410],
+# #     ('CH1', 65.1, 1.3): [290, 319],
+# #
+# #     ('CH1', 65.4, 1.6): [461, 500,532],
+# #     ('CH1', 65.4, 1.3): [363, 403,441],
+# #
+# #     ('CH1', 65.6, 1.6): [590, 633, 677],
+# #     ('CH1', 65.6, 1.3): [378,422,462,506],
+# #
+# #     ('CH1', 65.7, 1.6): [566, 649],
+# #     ('CH1', 65.7, 1.3): [440, 481, 523],
+# #
+# #     ('CH1', 65.8, 1.6): [650, 690,757],
+# #     ('CH1', 65.8, 1.3): [407, 450,502],
+# #
+# #     ('CH1', 66.0, 1.6): [170, 679,727, 795],
+# #     ('CH1', 66.0, 1.3): [427, 483, 560],
+# #
+# #     # Example format:
+# #     # ('CH0', 55.6, 1.3): [150, 300, 450],
+# #     # ('CH1', 55.6, 1.6): [200, 400],
+#  }
+#
+#
+# # manual_peak_indices = {
+# #     ('CH0', 65.1, 1.3): [190],
+# #     ('CH0', 65.1, 1.6): [205, 223],
+# #     ('CH1', 65.1, 1.3): [290, 319],
+# #     ('CH1', 65.1, 1.6): [375, 410],
+# # }
+#
+# # ========================================
+# #         Data Structures
+# # ========================================
+# data_by_channel = {
+#     "CH0": defaultdict(lambda: defaultdict(list)),
+#     "CH1": defaultdict(lambda: defaultdict(list))
+# }
+# pulse_by_voltage = defaultdict(lambda: defaultdict(float))
+#
+# # ========================================
+# #         Helper Functions
+# # ========================================
+# def extract_gain_and_pulse_voltages(filename):
+#     match = re.search(r"(\d+)_?(\d+)_gain_(\d+)_?(\d+)_pulse", filename)
+#     if match:
+#         gain = float(f"{match.group(1)}.{match.group(2)}")
+#         pulse = float(f"{match.group(3)}.{match.group(4)}")
+#         return gain, pulse
+#     return None, None
+#
+# def smooth_data(data, sigma=sigma):
+#     return gaussian_filter1d(data, sigma=sigma)
+#
+# def write_peak_data_to_file(peaks, data_cropped, filename, gain_voltage, pulse_voltage, channel):
+#     timestamp_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+#     '''
+#     write data to csv file
+#     '''
+#
+#     with open(filename, mode='w', newline='') as file:
+#         writer = csv.writer(file)
+#         writer.writerow([
+#             "Timestamp", "Channel", "Voltage Gain (V)", "Pulse Voltage (V)",
+#             "Peak Number", "Peak Index", "Peak Counts", "Index Difference"
+#         ])
+#
+#         for i, peak_idx in enumerate(peaks):
+#             count_value = data_cropped[peak_idx]
+#             diff = peak_idx - peaks[i - 1] if i > 0 else "N/A"
+#             writer.writerow([
+#                 timestamp_str, channel, gain_voltage, pulse_voltage,
+#                 i + 1, peak_idx, count_value, diff
+#             ])
+#
+#     print(f"Peak data written to {filename}")
+#
+# def find_and_label_peaks(data, ax, label, crop_off_start, crop_off_end, color, style,
+#                          vertical_lines=False, print_peaks=False,
+#                          channel=None, gain_voltage=None, pulse_voltage=None,
+#                          output_file=None, manual_peaks=None):
+#     data_cropped = data[crop_off_start:-crop_off_end]
+#     smoothed_data = smooth_data(data_cropped)
+#     x = np.arange(len(smoothed_data))
+#
+#     peaks, _ = find_peaks(
+#         smoothed_data,
+#         height=counts_threshold,
+#         distance=peak_spacing_threshold
+#     )
+#
+#     if manual_peaks is not None:
+#         peaks = np.concatenate([peaks, np.array(manual_peaks)])
+#         peaks = np.unique(peaks)
+#
+#     ax.plot(x, smoothed_data, label=label, alpha=0.8, color=color, linestyle=style)
+#     counts_at_peaks = smoothed_data[peaks]
+#     errors = np.sqrt(counts_at_peaks)
+#     ax.errorbar(x[peaks], counts_at_peaks, yerr=errors, fmt='o', color=color,
+#                 ecolor='gray', elinewidth=1, capsize=3, markersize=5, label=f"{label} Peaks")
+#
+#     if output_file:
+#         write_peak_data_to_file(peaks, smoothed_data, output_file, gain_voltage, pulse_voltage, channel)
+#
+#     if vertical_lines:
+#         for p in peaks:
+#             ax.axvline(x=p, color=color, linestyle='--', linewidth=1)
+#
+#     return peaks
+#
+# # ========================================
+# #         Load Data
+# # ========================================
+# print("\n=== Loading Data Files From Single Directory ===\n")
+# for subdir, _, files in os.walk(data_dir):
+#     for file in files:
+#         if not file.startswith("CH") or "dark" in file.lower():
+#             continue
+#
+#         full_path = os.path.join(subdir, file)
+#
+#         try:
+#             data = np.loadtxt(full_path, delimiter=',')
+#         except Exception as e:
+#             print(f"[ERROR] Could not load {full_path}: {e}")
+#             continue
+#
+#         gain_v, pulse_v = extract_gain_and_pulse_voltages(file)
+#         if gain_v is None:
+#             print(f"[SKIPPED] Could not parse voltages from: {file}")
+#             continue
+#
+#         channel = "CH0" if "CH0" in file else "CH1"
+#         print(f"[LOADED] {channel} | Gain = {gain_v} V | Pulse = {pulse_v} V | from {file}")
+#         data_by_channel[channel][gain_v]["light"].append((data, pulse_v, file))
+#         pulse_by_voltage[channel][gain_v] = pulse_v
+#
+# # ========================================
+# #         Plotting
+# # ========================================
+# print("\n=== Plotting Subplots and Logging Used Files ===\n")
+# subplot_counter = 1
+#
+# for channel, channel_data in data_by_channel.items():
+#     voltages_sorted = sorted(channel_data.keys())
+#     n_voltages = len(voltages_sorted)
+#     if n_voltages == 0:
+#         print(f"[SKIP] No valid data found for {channel}.")
+#         continue
+#
+#     n_cols = 2
+#     n_rows = math.ceil(n_voltages / n_cols)
+#
+#     fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 4 * n_rows))
+#     axes = axes.flatten()
+#
+#     for idx, gain_v in enumerate(voltages_sorted):
+#         ax = axes[idx]
+#         voltage_data = channel_data[gain_v]
+#
+#         print("\n------------------------------------------------")
+#         print(f"Subplot {subplot_counter}: {channel} | Gain = {gain_v} V")
+#
+#         if "light" in voltage_data:
+#             for data, pulse_height_voltage_sent, src in voltage_data["light"]:
+#                 # ⛔ Skip if pulse height not in allowed list
+#                 if pulse_voltages_to_plot is not None and pulse_height_voltage_sent not in pulse_voltages_to_plot:
+#                     continue
+#
+#                 color = pulse_color_map.get(pulse_height_voltage_sent, 'gray')
+#                 label = f"{pulse_height_voltage_sent}V pulse"
+#                 print(f"  ➔ File: {src}, Pulse = {pulse_height_voltage_sent}V")
+#
+#                 manual_peaks = manual_peak_indices.get((channel, gain_v, pulse_height_voltage_sent))
+#
+#                 output_file = f"generated_peak_data_results/peak_data_{channel}_gain_{gain_v}V_pulse_{pulse_height_voltage_sent}V.csv"
+#
+#                 find_and_label_peaks(
+#                     data=data,
+#                     ax=ax,
+#                     label=label,
+#                     crop_off_start=crop_off_start,
+#                     crop_off_end=crop_off_end,
+#                     color=color,
+#                     style='solid',
+#                     vertical_lines=vertical_lines,
+#                     print_peaks=False,
+#                     channel=channel,
+#                     gain_voltage=gain_v,
+#                     pulse_voltage=pulse_height_voltage_sent,
+#                     output_file=output_file,
+#                     manual_peaks=manual_peaks
+#                 )
+#
+#         ax.set_title(f"{channel} — {gain_v} V gain", fontsize=10)
+#         ax.set_xlabel("Index")
+#         ax.set_ylabel("Counts")
+#         ax.grid(True)
+#         ax.legend(fontsize=8)
+#         subplot_counter += 1
+#
+#     for j in range(idx + 1, len(axes)):
+#         fig.delaxes(axes[j])
+#
+#     fig.suptitle(f"{channel} — Light Data", fontsize=18)
+#     plt.tight_layout(rect=[0, 0, 1, 0.95])
+#     plt.show()
+#
