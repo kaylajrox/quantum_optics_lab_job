@@ -18,7 +18,7 @@ from datetime import datetime
 # ========================================
 data_dir = 'data_photon_counts/20250428_more_light'
 
-pulse_voltages_to_plot = [1.0, 1.3, 1.6, 2.0,2.3]  # <- Edit this as needed
+pulse_voltages_to_plot = [1.0,1.3, 1.6, 2.0]  # <- Edit this as needed
 gain_voltages_to_plot = [65.7, 65.8,65.9,66.0] # <- Edit this list as needed
 
 crop_off_start = 100
@@ -94,6 +94,16 @@ def smooth_data(data, sigma=sigma):
     return gaussian_filter1d(data, sigma=sigma)
 
 def write_peak_data_to_file(peaks, data_cropped, filename, gain_voltage, pulse_voltage, channel):
+    '''
+    Write peak data to a CSV file.
+    :param peaks:
+    :param data_cropped:
+    :param filename: file name to write to
+    :param gain_voltage:
+    :param pulse_voltage:
+    :param channel:
+    :return:
+    '''
     timestamp_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
