@@ -83,6 +83,11 @@ data_by_channel = {
 pulse_by_voltage = defaultdict(lambda: defaultdict(float))
 
 def extract_gain_and_pulse_voltages(filename):
+    '''
+    Extract gain and pulse voltages from the filename.
+    :param filename: file name of the data file structured in such a way to parse the gain voltage and pulse height
+    :return: gain voltage (e.g 65.7V) and pulse height (e.g 1.0V)
+    '''
     match = re.search(r"(\d+)_?(\d+)_gain_(\d+)_?(\d+)_pulse", filename)
     if match:
         gain = float(f"{match.group(1)}.{match.group(2)}")
@@ -91,6 +96,12 @@ def extract_gain_and_pulse_voltages(filename):
     return None, None
 
 def smooth_data(data, sigma=sigma):
+    '''
+    Smooth the data using a Gaussian filter.
+    :param data:
+    :param sigma:
+    :return:
+    '''
     return gaussian_filter1d(data, sigma=sigma)
 
 def write_peak_data_to_file(peaks, data_cropped, filename, gain_voltage, pulse_voltage, channel):
@@ -124,6 +135,24 @@ def find_and_label_peaks(data, ax, label, crop_off_start, crop_off_end, color, s
                          vertical_lines=False, print_peaks=False,
                          channel=None, gain_voltage=None, pulse_voltage=None,
                          output_file=None, manual_peaks=None):
+    '''
+    Find and label peaks in the data.
+    :param data:
+    :param ax:
+    :param label:
+    :param crop_off_start:
+    :param crop_off_end:
+    :param color:
+    :param style:
+    :param vertical_lines:
+    :param print_peaks:
+    :param channel:
+    :param gain_voltage:
+    :param pulse_voltage:
+    :param output_file:
+    :param manual_peaks:
+    :return:
+    '''
     data_cropped = data[crop_off_start:-crop_off_end]
     smoothed_data = smooth_data(data_cropped)
     x = np.arange(len(smoothed_data))
