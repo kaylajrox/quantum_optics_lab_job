@@ -1,0 +1,763 @@
+import matplotlib
+matplotlib.use('TkAgg')  # For PyCharm interactivity
+
+from pathlib import Path
+import matplotlib.pyplot as plt
+import csv
+import re
+import numpy as np
+from datetime import datetime
+
+# === FILTER SETTINGS: Include only these second peaks ===
+include_second_peaks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+# ======================== USER CONFIGURATION SETTINGS ===============================
+crop_data = True
+crop_start_amount = 100
+crop_end_amount = 3000
+parent_data_directory = "data-photon-counts-SiPM"
+data_directory = "20250507_more_peaks_compare_coicdence"
+font_size = 24
+font_size_legend = 14
+vertical_lines = False
+time_per_sample = 1.0
+
+peak_data = []
+weighted_rows = []
+timestamp_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+# ========================================================================
+# ========================== FILE DISCOVERY ==============================
+script_dir = Path(__file__).resolve().parent
+data_dir = script_dir.parent / parent_data_directory / data_directory
+
+print(f"Searching for subdirectories in: {data_dir}")
+peak_dirs = [subdir for subdir in data_dir.rglob("*") if subdir.is_dir() and subdir.name.startswith("peak")]
+print(f"Found peak directories: {[dir.name for dir in peak_dirs]}")
+
+file_groups = {}
+
+for peak_dir in peak_dirs:
+    print(f"\nProcessing directory: {peak_dir}")
+    folder_name = peak_dir.name
+    print(f"Processing folder: {folder_name}")
+    parts = folder_name.split("_")
+
+    first_peak = parts[0].replace("peak", "")
+    second_peak = parts[1].replace("and", "")
+    coincidence = f"Peak {first_peak} and {second_peak}"
+    correlation_time = parts[2]
+    state = next((word for word in ["filtered", "unfiltered", "raw"] if word in parts), "")
+
+    data_files = list(peak_dir.glob("*.txt"))
+    print(f"Found files: {[file.name for file in data_files]}")
+
+    for file_path in data_files:
+        if "AddBack" in file_path.name:
+            channel_number = file_path.name.split("_")[1]
+            group_key = (channel_number, "AddBack")
+            file_groups.setdefault(group_key, []).append((file_path, correlation_time, coincidence, state, second_peak))
+
+# ========================== PLOTTING & ANALYSIS ==========================
+for (channel, structure), files in file_groups.items():
+    print(f"\nPlotting group: {structure}, Channel {channel}")
+    plt.figure(figsize=(10, 6))
+
+    for file_path, correlation_time, coincidence, state, second_peak in files:
+        match = re.search(r"Peak \d+ and (\d+)", coincidence)
+        if match:
+            second_peak_num = int(match.group(1))
+            if second_peak_num not in include_second_peaks:
+                print(f"Skipping {coincidence} (second peak {second_peak_num} not in include list)")
+                continue
+        else:
+            print(f"Could not extract second peak from label: {coincidence}")
+            continue
+
+        print(f"Loading file: {file_path}")
+        with open(file_path, 'r') as file:
+            data = [float(line.strip()) for line in file if line.strip()]
+            print(f"Loaded {len(data)} data points")
+
+            if crop_data:
+                data = data[crop_start_amount:-crop_end_amount]
+                print(f"Cropped to {len(data)} points")
+
+        peak_value = max(data)
+        peak_index = data.index(peak_value)
+        timestamp = peak_index * time_per_sample
+
+        print(f"Second peak: {second_peak}, Peak: {peak_value:.2f} at index {peak_index}, time = {timestamp:.2f}")
+
+        peak_data.append({
+            "file": file_path.name,
+            "coincidence": coincidence,
+            "correlation_time": correlation_time,
+            "state": state,
+            "channel": channel,
+            "structure": structure,
+            "peak_value": peak_value,
+            "peak_index": peak_index,
+            "timestamp": timestamp,
+            "second_peak": second_peak
+        })
+
+        x_vals = list(range(len(data)))
+        curve, = plt.plot(x_vals, data, label=f"{coincidence}, {correlation_time}", linewidth=3)
+        color = curve.get_color()
+
+        if vertical_lines:
+            plt.axvline(x=peak_index, color=color, linestyle='--', label=f"Peak @ {peak_index}")
+            plt.text(peak_index, peak_value, f"{peak_value:.2f}", color=color, fontsize=8)
+
+        weights = np.array(data)
+        indices = np.arange(len(data))
+        if weights.sum() > 0:
+            weighted_mean_index = np.average(indices, weights=weights)
+            weighted_mean_time = weighted_mean_index * time_per_sample
+
+            print(f"Weighted mean index: {weighted_mean_index:.2f}, time: {weighted_mean_time:.2f}")
+
+            weighted_rows.append({
+                "file": file_path.name,
+                "coincidence": coincidence,
+                "correlation_time": correlation_time,
+                "state": state,
+                "channel": channel,
+                "structure": structure,
+                "weighted_mean_index": weighted_mean_index,
+                "weighted_mean_time": weighted_mean_time,
+                "second_peak": second_peak,
+                "timestamp_now": timestamp_now
+            })
+
+    plt.xlabel("Index", fontsize=font_size)
+    plt.ylabel("Counts", fontsize=font_size)
+    plt.title(f"{structure}, Channel {channel} ({state})", fontsize=font_size)
+    plt.tick_params(axis='x', labelsize=font_size)
+    plt.tick_params(axis='y', labelsize=font_size)
+    plt.grid(True)
+
+    handles, labels = plt.gca().get_legend_handles_labels()
+
+    def get_sort_key(label):
+        match_peak = re.search(r"Peak \d+ and (\d+)", label)
+        second_peak = int(match_peak.group(1)) if match_peak else float('inf')
+        match_time = re.search(r",\s*([\d\.]+)", label)
+        corr_time = float(match_time.group(1)) if match_time else float('inf')
+        return (second_peak, corr_time)
+
+    if handles:
+        sorted_pairs = sorted(zip(handles, labels), key=lambda x: get_sort_key(x[1]))
+        sorted_handles, sorted_labels = zip(*sorted_pairs)
+        plt.legend(sorted_handles, sorted_labels, fontsize=font_size_legend)
+
+    plt.tight_layout()
+    plt.show()
+    print(f"Finished plotting group: {structure}, Channel {channel} ({state})")
+
+# =============================== SORT AND SAVE ===============================
+
+def extract_numeric_time(corr_time):
+    match = re.match(r"(\d+(?:\.\d+)?)", corr_time)
+    return float(match.group(1)) if match else float('inf')
+
+def extract_second_peak_number(coincidence_str):
+    match = re.search(r"Peak \d+ and (\d+)", coincidence_str)
+    return int(match.group(1)) if match else float('inf')
+
+state_priority = {"filtered": 0, "unfiltered": 1, "raw": 2}
+
+weighted_rows_sorted = sorted(
+    weighted_rows,
+    key=lambda row: (
+        row["second_peak"],
+        row["coincidence"],
+        extract_numeric_time(row["correlation_time"]),
+        state_priority.get(row["state"], 99)
+    )
+)
+
+weighted_csv_path = script_dir / "weighted_means.csv"
+with open(weighted_csv_path, 'w', newline='') as wf:
+    writer = csv.writer(wf)
+    writer.writerow([
+        "Timestamp", "File", "Coincidence", "Second Peak", "Correlation Time", "State",
+        "Channel", "Structure", "Weighted Mean Index", "Weighted Mean Time"
+    ])
+    for row in weighted_rows_sorted:
+        writer.writerow([
+            row["timestamp_now"], row["file"], row["coincidence"], row["second_peak"], row["correlation_time"],
+            row["state"], row["channel"], row["structure"], row["weighted_mean_index"], row["weighted_mean_time"]
+        ])
+
+print(f"\n✅ Sorted and saved weighted means to: {weighted_csv_path}")
+
+
+
+
+# # mean time is the time caluclated using the correlation time window
+#
+#
+# import matplotlib
+# matplotlib.use('TkAgg')  # For PyCharm interactivity
+#
+# from pathlib import Path
+# import matplotlib.pyplot as plt
+# import csv
+# import re
+# import numpy as np
+#
+# # === FILTER SETTINGS: Include only these second peaks ===
+# include_second_peaks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+#
+# # ======================== USER CONFIGURATION SETTINGS ===============================
+# crop_data = True
+# crop_start_amount = 100
+# crop_end_amount = 3000
+# parent_data_directory = "data-photon-counts-SiPM"
+# data_directory = "20250507_more_peaks_compare_coicdence"
+# font_size = 24
+# font_size_legend = 14
+# vertical_lines = False
+# time_per_sample = 1.0
+#
+# peak_data = []
+# weighted_rows = []
+#
+# # ========================================================================
+# # ========================== FILE DISCOVERY ==============================
+# script_dir = Path(__file__).resolve().parent
+# data_dir = script_dir.parent / parent_data_directory / data_directory
+#
+# print(f"Searching for subdirectories in: {data_dir}")
+# peak_dirs = [subdir for subdir in data_dir.rglob("*") if subdir.is_dir() and subdir.name.startswith("peak")]
+# print(f"Found peak directories: {[dir.name for dir in peak_dirs]}")
+#
+# file_groups = {}
+#
+# for peak_dir in peak_dirs:
+#     print(f"\nProcessing directory: {peak_dir}")
+#     folder_name = peak_dir.name
+#     print(f"Processing folder: {folder_name}")
+#     parts = folder_name.split("_")
+#
+#     first_peak = parts[0].replace("peak", "")
+#     second_peak = parts[1].replace("and", "")
+#     coincidence = f"Peak {first_peak} and {second_peak}"
+#     correlation_time = parts[2]
+#     state = next((word for word in ["filtered", "unfiltered", "raw"] if word in parts), "")
+#
+#     data_files = list(peak_dir.glob("*.txt"))
+#     print(f"Found files: {[file.name for file in data_files]}")
+#
+#     for file_path in data_files:
+#         if "AddBack" in file_path.name:
+#             channel_number = file_path.name.split("_")[1]
+#             group_key = (channel_number, "AddBack")
+#             file_groups.setdefault(group_key, []).append((file_path, correlation_time, coincidence, state))
+#
+# # ========================== PLOTTING & ANALYSIS ==========================
+# for (channel, structure), files in file_groups.items():
+#     print(f"\nPlotting group: {structure}, Channel {channel}")
+#     plt.figure(figsize=(10, 6))
+#
+#     for file_path, correlation_time, coincidence, state in files:
+#         match = re.search(r"Peak \d+ and (\d+)", coincidence)
+#         if match:
+#             second_peak_num = int(match.group(1))
+#             if second_peak_num not in include_second_peaks:
+#                 print(f"Skipping {coincidence} (second peak {second_peak_num} not in include list)")
+#                 continue
+#         else:
+#             print(f"Could not extract second peak from label: {coincidence}")
+#             continue
+#
+#         print(f"Loading file: {file_path}")
+#         with open(file_path, 'r') as file:
+#             data = [float(line.strip()) for line in file if line.strip()]
+#             print(f"Loaded {len(data)} data points")
+#
+#             if crop_data:
+#                 data = data[crop_start_amount:-crop_end_amount]
+#                 print(f"Cropped to {len(data)} points")
+#
+#         peak_value = max(data)
+#         peak_index = data.index(peak_value)
+#         timestamp = peak_index * time_per_sample
+#
+#         print(f"Peak: {peak_value:.2f} at index {peak_index}, time = {timestamp:.2f}")
+#
+#         peak_data.append({
+#             "file": file_path.name,
+#             "correlation_time": correlation_time,
+#             "coincidence": coincidence,
+#             "state": state,
+#             "channel": channel,
+#             "structure": structure,
+#             "peak_value": peak_value,
+#             "peak_index": peak_index,
+#             "timestamp": timestamp
+#         })
+#
+#         x_vals = list(range(len(data)))
+#         print(f"x_vals: {x_vals}")
+#         # Adjust x_vals to start from 1 because python starts at 0
+#         curve, = plt.plot(x_vals, data, label=f"{coincidence}, {correlation_time}", linewidth=3)
+#         color = curve.get_color()
+#
+#         if vertical_lines:
+#             plt.axvline(x=peak_index, color=color, linestyle='--', label=f"Peak @ {peak_index}")
+#             plt.text(peak_index, peak_value, f"{peak_value:.2f}", color=color, fontsize=8)
+#
+#         # === Weighted mean calculation ===
+#         weights = np.array(data)
+#         indices = np.arange(len(data))
+#         if weights.sum() > 0:
+#             weighted_mean_index = np.average(indices, weights=weights)
+#             weighted_mean_time = weighted_mean_index * time_per_sample
+#
+#             print(f"Weighted mean index: {weighted_mean_index:.2f}, time: {weighted_mean_time:.2f}")
+#
+#             weighted_rows.append({
+#                 "file": file_path.name,
+#                 "coincidence": coincidence,
+#                 "correlation_time": correlation_time,
+#                 "state": state,
+#                 "channel": channel,
+#                 "structure": structure,
+#                 "weighted_mean_index": weighted_mean_index,
+#                 "weighted_mean_time": weighted_mean_time
+#             })
+#
+#     plt.xlabel("Index", fontsize=font_size)
+#     plt.ylabel("Counts", fontsize=font_size)
+#     plt.title(f"{structure}, Channel {channel} ({state})", fontsize=font_size)
+#     plt.tick_params(axis='x', labelsize=font_size)
+#     plt.tick_params(axis='y', labelsize=font_size)
+#     plt.grid(True)
+#
+#     handles, labels = plt.gca().get_legend_handles_labels()
+#
+#     def get_sort_key(label):
+#         match_peak = re.search(r"Peak \d+ and (\d+)", label)
+#         second_peak = int(match_peak.group(1)) if match_peak else float('inf')
+#         match_time = re.search(r",\s*([\d\.]+)", label)
+#         corr_time = float(match_time.group(1)) if match_time else float('inf')
+#         return (second_peak, corr_time)
+#
+#     if handles:
+#         sorted_pairs = sorted(zip(handles, labels), key=lambda x: get_sort_key(x[1]))
+#         sorted_handles, sorted_labels = zip(*sorted_pairs)
+#         plt.legend(sorted_handles, sorted_labels, fontsize=font_size_legend)
+#
+#     plt.tight_layout()
+#     plt.show()
+#     print(f"Finished plotting group: {structure}, Channel {channel} ({state})")
+#
+# # =============================== SORT AND SAVE ===============================
+#
+# def extract_numeric_time(corr_time):
+#     match = re.match(r"(\d+(?:\.\d+)?)", corr_time)
+#     return float(match.group(1)) if match else float('inf')
+#
+# def extract_second_peak_number(coincidence_str):
+#     match = re.search(r"Peak \d+ and (\d+)", coincidence_str)
+#     return int(match.group(1)) if match else float('inf')
+#
+# state_priority = {"filtered": 0, "unfiltered": 1, "raw": 2}
+#
+# weighted_rows_sorted = sorted(
+#     weighted_rows,
+#     key=lambda row: (
+#         extract_second_peak_number(row["coincidence"]),
+#         row["coincidence"],
+#         extract_numeric_time(row["correlation_time"]),
+#         state_priority.get(row["state"], 99)
+#     )
+# )
+#
+# weighted_csv_path = script_dir / "weighted_means.csv"
+# with open(weighted_csv_path, 'w', newline='') as wf:
+#     writer = csv.writer(wf)
+#     writer.writerow([
+#         "File", "Coincidence", "Correlation Time", "State",
+#         "Channel", "Structure", "Weighted Mean Index", "Weighted Mean Time"
+#     ])
+#     for row in weighted_rows_sorted:
+#         writer.writerow([
+#             row["file"],
+#             row["coincidence"],
+#             row["correlation_time"],
+#             row["state"],
+#             row["channel"],
+#             row["structure"],
+#             row["weighted_mean_index"],
+#             row["weighted_mean_time"]
+#         ])
+#
+# print(f"\n✅ Sorted and saved weighted means to: {weighted_csv_path}")
+#
+#
+# #
+# # import csv
+# # from datetime import datetime
+# # from pathlib import Path
+# # import numpy as np
+# #
+# # # Setup paths
+# # script_dir = Path.cwd()
+# # data_dir = script_dir /  / "20250507_more_peaks_compare_coicdence"
+# # weighted_means2_path = script_dir / "weighted_means2.csv"
+# #
+# # # Collect files
+# # file_groups = []
+# # for peak_dir in data_dir.rglob("*"):
+# #     if peak_dir.is_dir() and peak_dir.name.startswith("peak"):
+# #         parts = peak_dir.name.split("_")
+# #         if len(parts) < 3:
+# #             continue
+# #         first_peak = parts[0].replace("peak", "")
+# #         second_peak = parts[1].replace("and", "")
+# #         coincidence = f"Peak {first_peak} and {second_peak}"
+# #         correlation_time = parts[2]
+# #         state = next((word for word in ["filtered", "unfiltered", "raw"] if word in parts), "")
+# #         for file_path in peak_dir.glob("*AddBack*.txt"):
+# #             channel = file_path.name.split("_")[1]
+# #             file_groups.append((file_path, correlation_time, coincidence, state, channel, "AddBack"))
+# #
+# # # Analyze and write
+# # results = []
+# # for file_path, correlation_time, coincidence, state, channel, structure in file_groups:
+# #     try:
+# #         with open(file_path, 'r') as f:
+# #             data = [float(line.strip()) for line in f if line.strip()]
+# #     except Exception as e:
+# #         continue
+# #
+# #     crop_start_amount = 600
+# #     crop_end_amount = 3150
+# #     data = data[crop_start_amount:-crop_end_amount]
+# #
+# #     if not data:
+# #         continue
+# #
+# #     weights = np.array(data)
+# #     indices = np.arange(len(data))
+# #
+# #     if weights.sum() > 0:
+# #         weighted_mean_index = np.average(indices, weights=weights)
+# #         weighted_mean_time = weighted_mean_index * 1.0  # time_per_sample
+# #         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+# #         results.append({
+# #             "timestamp_now": timestamp,
+# #             "file": file_path.name,
+# #             "coincidence": coincidence,
+# #             "correlation_time": correlation_time,
+# #             "state": state,
+# #             "weighted_mean_index": weighted_mean_index,
+# #             "weighted_mean_time": weighted_mean_time,
+# #             "channel": channel,
+# #             "structure": structure
+# #         })
+# #
+# # # Write to CSV
+# # with open(weighted_means2_path, 'w', newline='') as wf:
+# #     writer = csv.DictWriter(wf, fieldnames=[
+# #         "timestamp_now", "file", "coincidence", "correlation_time", "state",
+# #         "weighted_mean_index", "weighted_mean_time", "channel", "structure"
+# #     ])
+# #     writer.writeheader()
+# #     writer.writerows(results)
+# #
+# # weighted_means2_path.name
+# #
+# #
+# #
+# # # from datetime import datetime
+# # # import pandas as pd
+# # # import numpy as np
+# # # from pathlib import Path
+# # #
+# # # # Reinitialize script_dir after state reset
+# # # script_dir = Path.cwd()
+# # # csv_output_path = script_dir / "weighted_means_with_meta.csv"
+# # #
+# # # # Placeholder for peak data collected during processing
+# # # weighted_rows = []
+# # #
+# # # # Sample simulation of file groups (normally populated from directory traversal)
+# # # file_groups = {
+# # #     ("1", "AddBack"): [
+# # #         ("sample_file_1.txt", "100", "Peak 1 and 2", "filtered", "AddBack"),
+# # #         ("sample_file_2.txt", "200", "Peak 3 and 4", "unfiltered", "AddBack"),
+# # #     ]
+# # # }
+# # #
+# # # # Simulated data files content (normally read from disk)
+# # # simulated_data = {
+# # #     "sample_file_1.txt": np.random.poisson(lam=50, size=5000),
+# # #     "sample_file_2.txt": np.random.poisson(lam=30, size=5000),
+# # # }
+# # #
+# # # crop_data = True
+# # # crop_start_amount = 600
+# # # crop_end_amount = 3150
+# # # time_per_sample = 1.0
+# # #
+# # # # Process files
+# # # for (channel, structure), files in file_groups.items():
+# # #     for file_path, correlation_time, coincidence, state, structure in files:
+# # #         data = simulated_data[file_path].copy()
+# # #
+# # #         if crop_data:
+# # #             data = data[crop_start_amount:-crop_end_amount]
+# # #
+# # #         weights = np.array(data)
+# # #         indices = np.arange(len(data))
+# # #         if weights.sum() > 0:
+# # #             weighted_mean_index = np.average(indices, weights=weights)
+# # #             weighted_mean_time = weighted_mean_index * time_per_sample
+# # #             today_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+# # #
+# # #             weighted_rows.append({
+# # #                 "timestamp": today_timestamp,
+# # #                 "channel": channel,
+# # #                 "structure": structure,
+# # #                 "state": state,
+# # #                 "file": file_path,
+# # #                 "coincidence": coincidence,
+# # #                 "correlation_time": correlation_time,
+# # #                 "weighted_mean_index": weighted_mean_index,
+# # #                 "weighted_mean_time": weighted_mean_time
+# # #             })
+# # #
+# # # # Save to CSV
+# # # df_weighted = pd.DataFrame(weighted_rows)
+# # # df_weighted.to_csv(csv_output_path, index=False)
+# # #
+# # #
+# # #
+# # #
+# # #
+# # # # import matplotlib
+# # # # matplotlib.use('TkAgg')  # For PyCharm interactivity
+# # # #
+# # # # from pathlib import Path
+# # # # import matplotlib.pyplot as plt
+# # # # import csv
+# # # # import re
+# # # # import numpy as np
+# # # #
+# # # # # === FILTER SETTINGS: Include only these second peaks ===
+# # # # include_second_peaks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+# # # #
+# # # # # ======================== USER CONFIGURATION SETTINGS ===============================
+# # # #
+# # # # crop_data = True
+# # # # crop_start_amount = 600
+# # # # crop_end_amount = 3150
+# # # # data_directory = "20250507_more_peaks_compare_coicdence"
+# # # # font_size = 24
+# # # # font_size_legend = 14
+# # # # vertical_lines = False
+# # # # time_per_sample = 1.0
+# # # #
+# # # # peak_data = []
+# # # # weighted_rows = []  # Store weighted mean rows to sort and write later
+# # # #
+# # # #
+# # # # # ========================================================================
+# # # # # ========================== FILE DISCOVERY ==============================
+# # # #
+# # # # script_dir = Path(__file__).resolve().parent
+# # # # data_dir = script_dir.parent /  / data_directory
+# # # #
+# # # # print(f"Searching for subdirectories in: {data_dir}")
+# # # # peak_dirs = [subdir for subdir in data_dir.rglob("*") if subdir.is_dir() and subdir.name.startswith("peak")]
+# # # # print(f"Found peak directories: {[dir.name for dir in peak_dirs]}")
+# # # #
+# # # # file_groups = {}
+# # # #
+# # # # for peak_dir in peak_dirs:
+# # # #     print(f"\nProcessing directory: {peak_dir}")
+# # # #     folder_name = peak_dir.name
+# # # #     parts = folder_name.split("_")
+# # # #
+# # # #     first_peak = parts[0].replace("peak", "")
+# # # #     second_peak = parts[1].replace("and", "")
+# # # #     coincidence = f"Peak {first_peak} and {second_peak}"
+# # # #     correlation_time = parts[2]
+# # # #     state = next((word for word in ["filtered", "unfiltered", "raw"] if word in parts), "")
+# # # #
+# # # #     data_files = list(peak_dir.glob("*.txt"))
+# # # #     print(f"Found files: {[file.name for file in data_files]}")
+# # # #
+# # # #     for file_path in data_files:
+# # # #         if "AddBack" in file_path.name:
+# # # #             channel_number = file_path.name.split("_")[1]
+# # # #             group_key = (channel_number, "AddBack")
+# # # #             file_groups.setdefault(group_key, []).append((file_path, correlation_time, coincidence, state))
+# # # #
+# # # # # ========================== PLOTTING & ANALYSIS ==========================
+# # # #
+# # # # for (channel, structure), files in file_groups.items():
+# # # #     print(f"\nPlotting group: {structure}, Channel {channel}")
+# # # #     plt.figure(figsize=(10, 6))
+# # # #
+# # # #     for file_path, correlation_time, coincidence, state in files:
+# # # #         match = re.search(r"Peak \d+ and (\d+)", coincidence)
+# # # #         if match:
+# # # #             second_peak_num = int(match.group(1))
+# # # #             if second_peak_num not in include_second_peaks:
+# # # #                 print(f"Skipping {coincidence} (second peak {second_peak_num} not in include list)")
+# # # #                 continue
+# # # #         else:
+# # # #             print(f"Could not extract second peak from label: {coincidence}")
+# # # #             continue
+# # # #
+# # # #         print(f"Loading file: {file_path}")
+# # # #         with open(file_path, 'r') as file:
+# # # #             data = [float(line.strip()) for line in file if line.strip()]
+# # # #             print(f"Loaded {len(data)} data points")
+# # # #
+# # # #             if crop_data:
+# # # #                 data = data[crop_start_amount:-crop_end_amount]
+# # # #                 print(f"Cropped to {len(data)} points")
+# # # #
+# # # #         peak_value = max(data)
+# # # #         peak_index = data.index(peak_value)
+# # # #         timestamp = peak_index * time_per_sample
+# # # #
+# # # #         print(f"Peak: {peak_value:.2f} at index {peak_index}, time = {timestamp:.2f}")
+# # # #
+# # # #         peak_data.append({
+# # # #             "file": file_path.name,
+# # # #             "correlation_time": correlation_time,
+# # # #             "coincidence": coincidence,
+# # # #             "state": state,
+# # # #             "channel": channel,
+# # # #             "structure": structure,
+# # # #             "peak_value": peak_value,
+# # # #             "peak_index": peak_index,
+# # # #             "timestamp": timestamp
+# # # #         })
+# # # #
+# # # #         x_vals = list(range(len(data)))
+# # # #         curve, = plt.plot(x_vals, data, label=f"{coincidence}, {correlation_time}", linewidth=3)
+# # # #         color = curve.get_color()
+# # # #
+# # # #         if vertical_lines:
+# # # #             plt.axvline(x=peak_index, color=color, linestyle='--', label=f"Peak @ {peak_index}")
+# # # #             plt.text(peak_index, peak_value, f"{peak_value:.2f}", color=color, fontsize=8)
+# # # #
+# # # #         # === Weighted mean calculation ===
+# # # # #===============================================================================
+# # # #         weights = np.array(data)
+# # # #         indices = np.arange(len(data))
+# # # #         if weights.sum() > 0:
+# # # #             weighted_mean_index = np.average(indices, weights=weights)
+# # # #             weighted_mean_time = weighted_mean_index * time_per_sample
+# # # #
+# # # #             print(f"Weighted mean index: {weighted_mean_index:.2f}, time: {weighted_mean_time:.2f}")
+# # # #
+# # # #             weighted_rows.append({
+# # # #                 "file": file_path.name,
+# # # #                 "coincidence": coincidence,
+# # # #                 "correlation_time": correlation_time,
+# # # #                 "state": state,
+# # # #                 "weighted_mean_index": weighted_mean_index,
+# # # #                 "weighted_mean_time": weighted_mean_time
+# # # #             })
+# # # #
+# # # #     plt.xlabel("Index", fontsize=font_size)
+# # # #     plt.ylabel("Counts", fontsize=font_size)
+# # # #     plt.title(f"{structure}, Channel {channel} ({state})", fontsize=font_size)
+# # # #     plt.tick_params(axis='x', labelsize=font_size)
+# # # #     plt.tick_params(axis='y', labelsize=font_size)
+# # # #     plt.grid(True)
+# # # #
+# # # #     handles, labels = plt.gca().get_legend_handles_labels()
+# # # #
+# # # #     def get_sort_key(label):
+# # # #         match_peak = re.search(r"Peak \d+ and (\d+)", label)
+# # # #         second_peak = int(match_peak.group(1)) if match_peak else float('inf')
+# # # #
+# # # #         match_time = re.search(r",\s*([\d\.]+)", label)
+# # # #         corr_time = float(match_time.group(1)) if match_time else float('inf')
+# # # #
+# # # #         return (second_peak, corr_time)
+# # # #
+# # # #     if handles:
+# # # #         sorted_pairs = sorted(zip(handles, labels), key=lambda x: get_sort_key(x[1]))
+# # # #         sorted_handles, sorted_labels = zip(*sorted_pairs)
+# # # #         plt.legend(sorted_handles, sorted_labels, fontsize=font_size_legend)
+# # # #
+# # # #     plt.tight_layout()
+# # # #     plt.show()
+# # # #     print(f"Finished plotting group: {structure}, Channel {channel} ({state})")
+# # # #
+# # # # # =============================== SORT AND SAVE ===============================
+# # # #
+# # # # def extract_numeric_time(corr_time):
+# # # #     match = re.match(r"(\d+(?:\.\d+)?)", corr_time)
+# # # #     return float(match.group(1)) if match else float('inf')
+# # # #
+# # # # def extract_second_peak_number(coincidence_str):
+# # # #     match = re.search(r"Peak \d+ and (\d+)", coincidence_str)
+# # # #     return int(match.group(1)) if match else float('inf')
+# # # #
+# # # # state_priority = {"filtered": 0, "unfiltered": 1, "raw": 2}
+# # # #
+# # # # peak_data_sorted = sorted(
+# # # #     peak_data,
+# # # #     key=lambda entry: (
+# # # #         extract_second_peak_number(entry["coincidence"]),
+# # # #         state_priority.get(entry["state"], 99),
+# # # #         entry["coincidence"],
+# # # #         extract_numeric_time(entry["correlation_time"])
+# # # #     )
+# # # # )
+# # # #
+# # # # csv_output = script_dir / "peak_summary.csv"
+# # # # with open(csv_output, 'w', newline='') as f:
+# # # #     writer = csv.DictWriter(f, fieldnames=[
+# # # #         "file", "correlation_time", "coincidence", "state", "channel",
+# # # #         "structure", "peak_value", "peak_index", "timestamp"
+# # # #     ])
+# # # #     writer.writeheader()
+# # # #     writer.writerows(peak_data_sorted)
+# # # #
+# # # # print(f"\nSorted and saved peak summary to: {csv_output}")
+# # # #
+# # # # # === SORT AND SAVE weighted_means.csv ===
+# # # # filtered_rows = [r for r in weighted_rows if r["state"] == "filtered"]
+# # # # unfiltered_rows = [r for r in weighted_rows if r["state"] == "unfiltered"]
+# # # #
+# # # # weighted_rows_sorted = sorted(filtered_rows, key=lambda row: (
+# # # #     extract_second_peak_number(row["coincidence"]),
+# # # #     row["coincidence"],
+# # # #     extract_numeric_time(row["correlation_time"])
+# # # # )) + sorted(unfiltered_rows, key=lambda row: (
+# # # #     extract_second_peak_number(row["coincidence"]),
+# # # #     row["coincidence"],
+# # # #     extract_numeric_time(row["correlation_time"])
+# # # # ))
+# # # #
+# # # # weighted_csv_path = script_dir / "weighted_means.csv"
+# # # # with open(weighted_csv_path, 'w', newline='') as wf:
+# # # #     writer = csv.writer(wf)
+# # # #     writer.writerow(["File", "Coincidence", "Correlation Time", "State", "Weighted Mean Index", "Weighted Mean Time"])
+# # # #     for row in weighted_rows_sorted:
+# # # #         writer.writerow([
+# # # #             row["timestamp"],
+# # # #             row["coincidence"],
+# # # #             row["correlation_time"],
+# # # #             row["state"],
+# # # #             row["weighted_mean_index"],
+# # # #             row["weighted_mean_time"],
+# # # #             row["file"],
+# # # #         ])
+# # # #
+# # # # print(f"\nSorted and saved weighted means to: {weighted_csv_path}")
+# # # #
