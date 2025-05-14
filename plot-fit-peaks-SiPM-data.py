@@ -15,7 +15,7 @@ import math
 from scipy.ndimage import gaussian_filter1d
 import csv
 from datetime import datetime
-from quick_single_data_set_analysis_tools.combine_data_from_separate_directories_into_single_database import *
+from analysis_single_dataset.combine_data_from_separate_directories_into_single_database import *
 
 
 # ========================================

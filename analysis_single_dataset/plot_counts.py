@@ -9,7 +9,7 @@ script_dir = Path(__file__).resolve().parent
 
 # Construct full paths to the data files
 
-data_dir = script_dir.parent / "data_photon_counts" / "20250402_pulse_height_vary" / "1_2V_20s"
+data_dir = script_dir.parent / "data-photon-counts-SiPM" / "20250402_pulse_height_vary" / "1_2V_20s"
 file_path_CH0 = data_dir / "CH0@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
 file_path_CH1 = data_dir / "CH1@DT5720B_75_EspectrumR_test_fixed1_2V_20s_20250402_150738.txt"
 
@@ -20,7 +20,7 @@ with open(file_path_CH0, 'r') as file:
 with open(file_path_CH1, 'r') as file:
     energies_CH1 = [float(line.strip()) for line in file if line.strip()]
 
-# crop data_photon_counts to the relevant ADC channels
+# crop data-photon-counts-SiPM to the relevant ADC channels
 energies_ADC_cropped_CH0 = energies_CH0[:-3990]
 energies_ADC_cropped_CH1 = energies_CH1[:-3950]
 
