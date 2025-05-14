@@ -15,7 +15,13 @@ import csv
 #========================================
 #         Parameters
 #========================================
-root_dir = 'data_photon_counts/20250417_1_3_pulse_height'
+
+# Update the root directory path to reflect the new location of the data
+root_dir = os.path.join(os.path.dirname(__file__), '../data-photon-counts-SiPM/20250417_1_3_pulse_height')
+
+# Debugging: Check if files are being found
+print(f"Looking for data files in: {os.path.abspath(root_dir)}")
+
 #crop_off_start = 0
 #crop_off_end = 3800
 # newer lsb settings
@@ -99,6 +105,11 @@ for channel, voltages in data_by_channel.items():
 #========================================
 
 def write_peak_data_to_file(peaks, data_cropped, filename, gain_voltage, pulse_voltage):
+    # Ensure the directory exists
+    directory = os.path.dirname(filename)
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory, exist_ok=True)
+
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(["Voltage Gain (V)", "Pulse Voltage (V)", "Peak Number", "Peak Index", "Peak Counts", "Index Difference"])
@@ -111,6 +122,7 @@ def write_peak_data_to_file(peaks, data_cropped, filename, gain_voltage, pulse_v
             writer.writerow([gain_voltage, pulse_voltage, i + 1, peak_idx, count_value, diff])
     print(f"Peak data written to {filename}")
 
+# Function to find and label peaks
 def find_and_label_peaks(data, ax, label, crop_off_start,crop_off_end, color, style, vertical_lines=False,
                          print_peaks=False, channel=None, gain_voltage=None, pulse_voltage=None, output_file=None):
     data_cropped = data[crop_off_start:-crop_off_end]

@@ -4,7 +4,6 @@ matplotlib.use('TkAgg')  # For PyCharm interactivity
 from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
-from combine_data_from_separate_directories_into_single_database import *
 
 # Crop-off setting
 crop_off = 0
@@ -20,7 +19,7 @@ pulse_color_map = {
 }
 
 # Load the summary CSV
-summary_df = pd.read_csv('results_first_peaks_summary.csv')
+summary_df = pd.read_csv('../results_first_peaks_summary.csv')
 
 # Sort for consistent plotting
 summary_df = summary_df.sort_values(
