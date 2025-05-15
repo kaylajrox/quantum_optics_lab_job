@@ -76,7 +76,7 @@ This will ensure that the new data is not mixed with old data.
 It produces an two images (one for CH0 and one for CH1) that looks like this: 
 
 
-![Alt Text](overleaf-images/multiple_light_levels_comparison_CH0.png)
+![Alt Text](readme_and_overleaf_images/multiple_light_levels_comparison_CH0.png)
 
 ### **Free** parameters you can change in the code:
 - **data_dir**: change the name of the name starting with a date in the data directory to look at. All data `data-photon-counts-SiPM/`, you need to specify which day's data you want to analyze
@@ -89,7 +89,7 @@ It produces an two images (one for CH0 and one for CH1) that looks like this:
 - **crop_off_end** how many values you want to crop off the end of the data
   - e.g if you want to crop off the last 2000 values that have no data in them (produces data up to 40000 and only relevant data is ~1500 in size, then change it to `crop_off_end=2000`
 - **vertical_lines** boolean True or False, puts a vertical line where the calculated peaks are, it sometimes makes it easier to read the plot. For example, if turned on then all the plots will look like this:
-- ![Alt Text](overleaf-images/vertical-lines-example.png)
+- ![Alt Text](readme_and_overleaf_images/vertical-lines-example.png)
   - I set only one value of the gain to look at currently and that is its plot
 - The next set of parameters determine the fitting of the data (using interpolation of the data to get the curve but will double check)
 - **counts_threshold**: threshold of counts that anything below 100 will **not** be considered a peak, easy to change around when you see lower peaks not being found by peak finder
@@ -104,9 +104,12 @@ It produces an two images (one for CH0 and one for CH1) that looks like this:
   1a). **Description**: This python file will plot all the gain voltage subplots associated with the channel. It plots the data, fits and smoothes the data, and generates the data required for further analysis in the 'single-channel-analysis' and other subdirectories.
 ###  Running the dark counts script
 
-In our initial analysis, we wanted to be able to distinguish between the peaks with no light, the "dark", and compare it to different pulse heights. There are peaks with no light because these are thermal photons that are being detected once the instrument turns on. We compared the lowest possible level
+In our initial analysis, we wanted to be able to distinguish between the peaks with no light, the "dark", and compare it to different pulse heights. There are peaks with no light because these are thermal photons that are being detected once the instrument turns on. We compared the lowest possible level of light to see how it compared to the dark.
 
+- The initial analysis used 1.0V pulse height and 65.7V gain voltage. The lsb settings on each channel was different from the latest ones now.
 
+- ![Alt Text](readme_and_overleaf_images/1_0V_pulse_data_dark_compare_CH0.png)
+ 
 
 
 # 2.) Single Channel Analysis from generated results by step 1.
@@ -123,10 +126,10 @@ In our initial analysis, we wanted to be able to distinguish between the peaks w
 
 ### This generates files that look like this:
 And produces a plot for every gain and every channel (turn off interactivity if you dont want to annoying click exit on all of them)
-- ![Alt Text](overleaf-images/slope-spacing-plot.png)
+- ![Alt Text](readme_and_overleaf_images/slope-spacing-plot.png)
 
 And example of how the gain and channel being changed looks like:
-- ![Alt Text](overleaf-images/slope-spacing-plot_CH1.png)
+- ![Alt Text](readme_and_overleaf_images/slope-spacing-plot_CH1.png)
 
 2a). **Description**: This python file will plot the index vs peak data for each channel and save the plots in the folder 'index_vs_peak_data_results'. It will also save the data in a csv file in the same folder.
 
