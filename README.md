@@ -1,5 +1,7 @@
 # quantum_optics_lab_job
 
+#todo make the readme file look just like the overleaf document, but with more detail about the code, to avoid confusion
+
 1. Run the main script plot_MAIN_PEAK_FITTER.py to generate the data used the other scripts. This python file will plot all the gain voltage subplots associated with the channel. It plots the data, fits and smoothes the data, 
 
 # Data analysis
