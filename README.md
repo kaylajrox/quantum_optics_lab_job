@@ -98,11 +98,15 @@ It produces an two images (one for CH0 and one for CH1) that looks like this:
 - **pulse_color_map** allows you to change the specific colors of each of the pulse height curves
 - **manual_peak_indices** if no matter what you do to try and get all the peaks, some won't be found because they are on a vertical hill or something like that, so you can add in peaks by analyzing the graph and putting in that index so it gets properly counted as a peak
 
+- clear the folder that gets populated when running the main script for the other analysis scripts (slope, comparison, etc) to have just the most recent data in generated_peak_data_results
+- csv updates automatically just check the date it was generated if unsure
 
   1a). **Description**: This python file will plot all the gain voltage subplots associated with the channel. It plots the data, fits and smoothes the data, and generates the data required for further analysis in the 'single-channel-analysis' and other subdirectories.
-## Data analysis notes
-- clear the folder that gets populated when running the main script for the other analysis scripts (slope, comparison, etc) to have just the most recent data in generated_peak_data_results
-- delete results csv table
+###  Running the dark counts script
+
+In our initial analysis, we wanted to be able to distinguish between the peaks with no light, the "dark", and compare it to different pulse heights. There are peaks with no light because these are thermal photons that are being detected once the instrument turns on. We compared the lowest possible level
+
+
 
 
 # 2.) Single Channel Analysis from generated results by step 1.
