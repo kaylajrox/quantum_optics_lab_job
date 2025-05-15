@@ -1,16 +1,32 @@
-# quantum_optics_lab_job
 
 
-## Data analysis notes
-- clear the folder that gets populated when running the main script for the other analysis scripts (slope, comparison, etc) to have just the most recent data in generated_peak_data_results
-- delete results csv table
+
+
 
 # Order of the files to be ran
-## Data sorted will be provided
 
-## todo - make compass folders paraced to look like my folders to be more light weight
+## Quick and dirty
+In generated new results for a new set of data
+1. The main script `plot-fit-peaks-SiPM-data.py` generates the data used the other scripts 
+   2. number of peaks
+   3. peak index (position)
+2. Run scripts in single channel analysis
+3. Run `index_vs_peak.py` to generate the index vs peak data. This python file will plot the index vs peak data for each channel and save the plots in the folder "index_vs_peak_data_results". It will also save the data in a csv file in the same folder.
+3. Run `spacing_vs_peak.py` to generate the spacing vs peak data. This python file will plot the spacing vs peak data for each channel and save the plots in the folder "spacing_vs_peak_data_results". It will also save the data in a csv file in the same folder.
+
+
+
+# Data analysis
+- clear the folder that gets populated when running the main script for the other analysis scripts (slope, comparison, etc) to have just the most recent data in generated_peak_data_results
+- delete results csv table
+- results files get generated after each run of the main script. The folder generated_peak_data_results gets populated with the data used for the other analysis scripts (slope, comparison, etc).
+
+
+###### todo - make compass folders paraced to look like my folders to be more light weight
+
+# 1. Run the main script
 The data structure was choosen to be able to loop through subdirectories in the data folder because in CoMPass, they package a single run into a project to be able to so easily drop the `runs` in a specific **drop CoMPass run folders can be simply dropped into the `data-photon-counts-SiPM` folder. (you need to change the path or take files out of each folde) **
-### 1.)  Run `plot-fit-peaks-SiPM-data.py` to generate the data used in either the single-channel-analysis or coincidence-analysis subdirectories.  
+##   Run `plot-fit-peaks-SiPM-data.py` to generate the data used in either the single-channel-analysis or coincidence-analysis subdirectories.  
 
 - - -   
 ### Parcing meta data  
@@ -54,25 +70,42 @@ This will ensure that the new data is not mixed with old data.
         - `raw` raw data from CoMPass
 
 
-#### **_BIG WARNING:_** 
-The data is structured in a very specific way to be able to 
+    
+**Output**: crops, identifies peaks, and fits the curve
 
-
-**Contains:** It plots the peaks, it crops the dataset 
-<span style="color:red">This text is red</span>(.)  Cropping allows us to actually see the data
-
-It produces an image that looks like this: 
+It produces an two images (one for CH0 and one for CH1) that looks like this: 
 
 
 ![Alt Text](overleaf-images/multiple_light_levels_comparison_CH0.png)
 
 ### **Free** parameters you can change in the code:
-- **data_dir**: this parameter changes which directory of data you want to see, all data is stored in the `data-photon-counts-SiPM/`
+- **data_dir**: change the name of the name starting with a date in the data directory to look at. All data `data-photon-counts-SiPM/`, you need to specify which day's data you want to analyze
+  - e.g `20250505_coic_correlation_time_vary` isa foldername you can change in there to `20250428_more_light`
+- **gain_voltages_to_plot** to see only data associated with the desired gain voltages determine the number of plots and which plots are plotting for that specific gain voltage 
+  - e.g if my data for example has [65.7,65.8,65.9] in its list, then changing it to [65.7,65.8] plots only data associated with that tag and same for a single [65.7]
+    - obviously, this breaks when you choose something that doesnt exist, probably an exception or error will hiw
+- **crop_off_start** how many values you want to crop off the start of the data
+  - e.g if you want to crop off the first 100 values because the data is shifted to the right, then change it to `crop_off_start=100`
+- **crop_off_end** how many values you want to crop off the end of the data
+  - e.g if you want to crop off the last 2000 values that have no data in them (produces data up to 40000 and only relevant data is ~1500 in size, then change it to `crop_off_end=2000`
+- **vertical_lines** boolean True or False, puts a vertical line where the calculated peaks are, it sometimes makes it easier to read the plot. For example, if turned on then all the plots will look like this:
+- ![Alt Text](overleaf-images/vertical-lines-example.png)
+  - I set only one value of the gain to look at currently and that is its plot
+- The next set of parameters determine the fitting of the data (using interpolation of the data to get the curve but will double check)
+- **counts_threshold**: threshold of counts that anything below 100 will **not** be considered a peak, easy to change around when you see lower peaks not being found by peak finder
+- **peak_spacing_threshold**: threshold of distance between peaks,( e.g prevent multiple points on the same peak), mine is at 16, which means the peaks have to be at least 16 indices away from each other to be considered a peak
+- **sigma** this is used to make the data more smooth (is the standard deviation of the gaussian fit, this is used to determine how wide the peak is, if you want to change it to be wider or narrower, you can change this value)
+- **pulse_color_map** allows you to change the specific colors of each of the pulse height curves
+- **manual_peak_indices** if no matter what you do to try and get all the peaks, some won't be found because they are on a vertical hill or something like that, so you can add in peaks by analyzing the graph and putting in that index so it gets properly counted as a peak
 
-1a). **Description**: This python file will plot all the gain voltage subplots associated with the channel. It plots the data, fits and smoothes the data, and generates the data required for further analysis in the 'single-channel-analysis' and other subdirectories.
+
+  1a). **Description**: This python file will plot all the gain voltage subplots associated with the channel. It plots the data, fits and smoothes the data, and generates the data required for further analysis in the 'single-channel-analysis' and other subdirectories.
 ## Data analysis notes
 - clear the folder that gets populated when running the main script for the other analysis scripts (slope, comparison, etc) to have just the most recent data in generated_peak_data_results
 - delete results csv table
+
+
+# 2.) Analyze generated data for Coicidence or Single Channel Analysis
 
 2.) Now you can run any single-channel analysis.
 
@@ -481,11 +514,16 @@ This folder structure ensures that data from different experiments is kept separ
 
 # duplicate 
 
-#quantum_optics_lab_job
+b
 In generated new results for a new set of data
-1. Run the main script plot_MAIN_PEAK_FITTER.py to generate the data used the other scripts. This python file will plot all the gain voltage subplots associated with the channel. It plots the data, fits and smoothes the data, 
-2. Run index_vs_peak.py to generate the index vs peak data. This python file will plot the index vs peak data for each channel and save the plots in the folder "index_vs_peak_data_results". It will also save the data in a csv file in the same folder.
-3. Run spacing_vs_peak.py to generate the spacing vs peak data. This python file will plot the spacing vs peak data for each channel and save the plots in the folder "spacing_vs_peak_data_results". It will also save the data in a csv file in the same folder.
+1. The main script `plot-fit-peaks-SiPM-data.py` generates the data used the other scripts 
+   2. number of peaks
+   3. peak index (position)
+2. Run `index_vs_peak.py` to generate the index vs peak data. This python file will plot the index vs peak data for each channel and save the plots in the folder "index_vs_peak_data_results". It will also save the data in a csv file in the same folder.
+3. Run `spacing_vs_peak.py` to generate the spacing vs peak data. This python file will plot the spacing vs peak data for each channel and save the plots in the folder "spacing_vs_peak_data_results". It will also save the data in a csv file in the same folder.
+
+
+
 # Data analysis
 - clear the folder that gets populated when running the main script for the other analysis scripts (slope, comparison, etc) to have just the most recent data in generated_peak_data_results
 - delete results csv table
