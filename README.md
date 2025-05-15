@@ -16,7 +16,7 @@ In generated new results for a new set of data
 
 
 
-# Data analysis
+
 - clear the folder that gets populated when running the main script for the other analysis scripts (slope, comparison, etc) to have just the most recent data in generated_peak_data_results
 - delete results csv table
 - results files get generated after each run of the main script. The folder generated_peak_data_results gets populated with the data used for the other analysis scripts (slope, comparison, etc).
