@@ -13,8 +13,7 @@ include_second_peaks = list(range(1, 11))
 crop_data = True
 crop_start_amount = 100
 crop_end_amount = 3000
-parent_data_directory = "data-photon-counts-SiPM"
-data_directory = "20250507_more_peaks_compare_coicdence"
+
 font_size = 24
 font_size_legend = 14
 vertical_lines = False
