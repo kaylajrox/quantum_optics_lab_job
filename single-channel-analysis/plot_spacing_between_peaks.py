@@ -16,7 +16,6 @@ import matplotlib.ticker as ticker
 font_size = 24
 
 
-
 # Load the combined peak data
 df = pd.read_csv('../results_combined_peak_data.csv')
 df.columns = df.columns.str.strip()
