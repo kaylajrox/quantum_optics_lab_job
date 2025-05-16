@@ -19,11 +19,11 @@ y_axis_label = "Weighted Mean Index"
 x_axis_label = "CH1 Peak Number"
 
 # Load the CSV
-df = pd.read_csv("./processed_peak_data.csv.csv")
+df = pd.read_csv("./processed_peak_data.csv")
 
 # Filter by state
-df_filtered = df[df['State'] == 'filtered'].reset_index(drop=True)
-df_unfiltered = df[df['State'] == 'unfiltered'].reset_index(drop=True)
+df_filtered = df[df['state'] == 'filtered'].reset_index(drop=True)
+df_unfiltered = df[df['state'] == 'unfiltered'].reset_index(drop=True)
 
 print(df_filtered)
 # ===================== FILTERED PLOT =====================
