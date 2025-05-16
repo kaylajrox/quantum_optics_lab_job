@@ -7,4 +7,7 @@
 *.svg
 *.pdf
 *.png
+*.csv
+README-test.md
+overleaf-images/
 data-photon-counts-SiPM/**
