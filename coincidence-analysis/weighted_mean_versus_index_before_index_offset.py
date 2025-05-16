@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import re
 
 # === CONFIG ===
-csv_path = "../weighted_means.csv"  # Adjust if needed
+csv_path = "weighted_means.csv"  # Adjust if needed
 font_size = 16
 
 # === LOAD AND PARSE CSV ===

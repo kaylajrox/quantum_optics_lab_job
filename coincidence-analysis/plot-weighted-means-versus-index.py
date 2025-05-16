@@ -1,3 +1,6 @@
+#TODO check index and data, looks weird now
+
+
 import matplotlib
 matplotlib.use('TkAgg')  # For PyCharm interactivity
 
