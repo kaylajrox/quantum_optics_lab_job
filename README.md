@@ -182,7 +182,7 @@ This script generates a plot that looks like this:
 
 
 
-## 2b.) `plotMAIN_coic_addback_files.py`
+## 2b.) `plot_coic_addback_with_weighted_means.py`
 
 3.) Now you can run any coincidence analysis. The first file to run before running the others is 'plot_coic_addback.py'. and then you can analyze the weighted mean plot and/or the correlation window plot
 

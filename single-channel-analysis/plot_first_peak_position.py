@@ -1,6 +1,6 @@
 import matplotlib
 matplotlib.use('TkAgg')  # For PyCharm interactivity
-
+# TODO make sure to include generated python script in all generated csv files so we dont confuse ourselves
 from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
