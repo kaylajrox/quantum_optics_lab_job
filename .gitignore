@@ -1,4 +1,5 @@
 /.idea
+.idea
 /tests
 /.ipynb_checkpoints
 *.log
@@ -9,3 +10,4 @@
 *.png
 *.csv
 data-photon-counts-SiPM/**
+/todo
