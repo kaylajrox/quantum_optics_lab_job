@@ -13,7 +13,7 @@ font_size= 24
 
 # Define the path to the CSV file
 script_dir = Path(__file__).resolve().parent
-file_path = script_dir / 'peak_summary_weighted_means_counts.csv'
+file_path = script_dir / 'processed_peak_data.csv'
 
 # Load CSV
 data = pd.read_csv(file_path)
