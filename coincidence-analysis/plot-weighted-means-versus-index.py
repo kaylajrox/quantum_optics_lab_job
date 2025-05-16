@@ -19,7 +19,7 @@ y_axis_label = "Weighted Mean Index"
 x_axis_label = "CH1 Peak Number"
 
 # Load the CSV
-df = pd.read_csv("./weighted_means.csv")
+df = pd.read_csv("./processed_peak_data.csv.csv")
 
 # Filter by state
 df_filtered = df[df['State'] == 'filtered'].reset_index(drop=True)

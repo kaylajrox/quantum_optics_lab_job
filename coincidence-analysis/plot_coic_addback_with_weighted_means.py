@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import csv
 import re
 import numpy as np
+from datetime import datetime  # ✅ for timestamp
 
 script_name = Path(__file__).name  # ✅ For provenance tracking
 
@@ -57,14 +58,10 @@ with open(weighted_csv_path, 'r') as wf:
     reader = csv.DictReader(wf)
     for row in reader:
         row["weighted_mean_index"] = float(row["Weighted Mean Index"])
-        row["coincidence"] = row["Coincidence"]
-        row["correlation_time"] = row["Correlation Time"]
-        row["state"] = row["State"]
-        row["file"] = row["File"]
-        row["generated_by"] = script_name  # ✅ Add script provenance here
+        row["generated_by"] = script_name  # ✅ provenance
         weighted_rows.append(row)
 
-# === OVERWRITE weighted_means.csv with updated header ===
+# === OVERWRITE weighted_means.csv ===
 fieldnames = list(weighted_rows[0].keys())
 with open(weighted_csv_path, 'w', newline='') as wf:
     writer = csv.DictWriter(wf, fieldnames=fieldnames)
@@ -72,7 +69,7 @@ with open(weighted_csv_path, 'w', newline='') as wf:
     writer.writerows(weighted_rows)
 print(f"✅ Updated {weighted_csv_path} with 'generated_by' column ({script_name})")
 
-# === PLOTTING LOOP ===
+# === PLOTTING & PEAK DATA COLLECTION ===
 for (channel, structure), files in file_groups.items():
     plt.figure(figsize=(10, 6))
     for file_path, correlation_time, coincidence, state in files:
@@ -89,39 +86,39 @@ for (channel, structure), files in file_groups.items():
             if crop_data:
                 data = data[crop_start_amount:-crop_end_amount]
 
-        total_counts = sum(data)
         peak_value = max(data)
         peak_index = data.index(peak_value)
         timestamp = peak_index * time_per_sample
 
         peak_data.append({
-            "timestamp": timestamp,
+            "time_ran": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # ✅ timestamp
             "correlation_time": correlation_time,
             "coincidence": coincidence,
+            "second_peak": second_peak_num,  # ✅ new column
             "state": state,
             "channel": channel,
             "structure": structure,
             "peak_value": peak_value,
             "peak_index": peak_index,
-            "file_used_in_analysis": file_path.name,
-            "csv_this_is_generated_by": script_name
+            "data_file_used_in_analysis": file_path.name,
+            "csv_this_is_generated_by": script_name,
+
         })
 
         x_vals = list(range(len(data)))
         curve, = plt.plot(x_vals, data, label=f"{coincidence}, {correlation_time}", linewidth=3)
         color = curve.get_color()
 
-        # Vertical line at weighted mean
         for row in weighted_rows:
-            if (row["file"] == file_path.name and
-                row["coincidence"] == coincidence and
-                row["correlation_time"] == correlation_time and
-                row["state"] == state):
+            if (row["File"] == file_path.name and
+                row["Coincidence"] == coincidence and
+                row["Correlation Time"] == correlation_time and
+                row["State"] == state):
                 plt.axvline(x=row["weighted_mean_index"], color=color, linestyle='--', linewidth=3)
 
     plt.xlabel("Index", fontsize=font_size)
     plt.ylabel("Counts", fontsize=font_size)
-    plt.title(f"{structure}, Channel {channel} ({state})", fontsize=font_size)
+    plt.title(f"{structure}, Channel {channel}", fontsize=font_size)
     plt.tick_params(axis='x', labelsize=font_size)
     plt.tick_params(axis='y', labelsize=font_size)
     plt.grid(True)
@@ -138,3 +135,15 @@ for (channel, structure), files in file_groups.items():
 
     plt.tight_layout()
     plt.show()
+
+# === FINAL SORT & SAVE PEAK DATA CSV ===
+output_file = script_dir / "processed_peak_data.csv"
+peak_data_sorted = sorted(peak_data, key=lambda x: (x['channel'], x['second_peak'], x['state'] != 'filtered'))
+
+fieldnames = list(peak_data_sorted[0].keys())
+with open(output_file, 'w', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(peak_data_sorted)
+
+print(f"✅ Final peak data saved to {output_file}")
