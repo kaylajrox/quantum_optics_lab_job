@@ -1,3 +1,0 @@
-timestamp,channel,structure,state,file,coincidence,correlation_time,weighted_mean_index,weighted_mean_time
-2025-05-13 11:52:15,1,AddBack,filtered,sample_file_1.txt,Peak 1 and 2,100,623.3343865696413,623.3343865696413
-2025-05-13 11:52:15,1,AddBack,unfiltered,sample_file_2.txt,Peak 3 and 4,200,626.648018276485,626.648018276485

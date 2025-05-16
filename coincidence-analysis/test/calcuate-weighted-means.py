@@ -1,1 +1,0 @@
- #put calculated means here to reduce length of code
