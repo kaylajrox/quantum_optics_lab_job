@@ -25,7 +25,10 @@ peak_data = []
 # ========================== FILE DISCOVERY ==============================
 
 script_dir = Path(__file__).resolve().parent
+print(script_dir)
 data_dir = script_dir.parent / "data-photon-counts-SiPM" / data_directory
+
+print(data_dir)
 weighted_csv_path = script_dir / "weighted_means.csv"
 
 print(f"Searching for subdirectories in: {data_dir}")
