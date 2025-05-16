@@ -25,6 +25,9 @@ from analysis_single_dataset.combine_data_from_separate_directories_into_single_
 #
 # ========================================
 #data_dir = 'data-photon-counts-SiPM/20250428_more_light'
+
+
+
 data_dir = 'data-photon-counts-SiPM/20250507_baseline_data_for_coic_comparison'
 
 pulse_voltages_to_plot = [1.6]  # <- Edit this as needed
@@ -32,7 +35,9 @@ gain_voltages_to_plot = [65.7] # <- Edit this list as needed
 
 crop_off_start = 100
 crop_off_end = 3000
-vertical_lines = False
+vertical_lines = True
+
+# peak finding parameters
 counts_threshold = 100
 peak_spacing_threshold = 16
 sigma = 3.6
@@ -86,6 +91,10 @@ manual_peak_indices = {
     # ('CH1', 66.0, 2.0): [1044,1128],
 
 }
+
+#==========================================
+#      Actual code doing the work
+#==========================================
 
 data_by_channel = {
     "CH0": defaultdict(lambda: defaultdict(list)),

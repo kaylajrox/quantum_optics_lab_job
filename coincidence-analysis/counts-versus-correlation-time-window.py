@@ -1,9 +1,15 @@
 import matplotlib
+from holoviews.plotting.bokeh.styles import font_size
+
 matplotlib.use('TkAgg')  # For PyCharm interactivity
 
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
+
+# TODO check if all variables from each script are supposed to be the same
+font_size= 24
+
 
 # Define the path to the CSV file
 script_dir = Path(__file__).resolve().parent
@@ -24,11 +30,13 @@ def plot_total_counts(df, title):
     plt.figure(figsize=(10, 6))
     for coincidence, group in df.groupby('Coincidence'):
         group = group.sort_values('Correlation Time (ns)')
-        plt.plot(group['Correlation Time (ns)'], group['Total Counts'], marker='o', label=coincidence)
+        plt.plot(group['Correlation Time (ns)'], group['Total Counts'], marker='o', label=coincidence, linewidth=2)
 
-    plt.xlabel('Correlation Time (ns)')
-    plt.ylabel('Total Counts')
-    plt.title(title)
+    plt.xlabel('Correlation Time (ns)',fontsize=font_size)
+    plt.ylabel('Total Counts',fontsize=font_size)
+    plt.tick_params(axis='x', labelsize=font_size)
+    plt.tick_params(axis='y', labelsize=font_size)
+    plt.title(title,fontsize=font_size)
     plt.legend(title='Coincidence')
     plt.grid(True)
     plt.tight_layout()
