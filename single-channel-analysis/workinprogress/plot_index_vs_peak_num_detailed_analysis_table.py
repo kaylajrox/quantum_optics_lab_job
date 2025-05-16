@@ -1,3 +1,38 @@
+'''
+How It Works
+--------------------------------
+Data Loading:
+Reads the source file (../results_combined_peak_data.csv) and ensures numeric types for Peak Number, Peak Index, and Peak Counts.
+Drops rows with missing values in these columns.
+
+==================================================
+Grouping:
+-Groups data by Channel (from filename), Gain Voltage (from filename), and Pulse Height (from filename).
+Calculations:
+--------------------------------------------
+Calculations for each group:
+-Sorts data by Peak Number.
+-Calculates slopes between consecutive peaks (Peak Index differences divided by Peak Number differences).
+-Computes the average slope and standard deviation of slopes.
+
+======================================
+Output Writing:
+-Writes summary data to ../results_spacing_from_slope.csv.
+-Writes detailed data (including individual peak information) to ../results_detailed_peak_data.csv
+
+=======================================
+
+Usage
+-Place the source file (results_combined_peak_data.csv) in the appropriate directory.
+-Run the script:
+-python plot_index_vs_peak_num_detailed_analysis_table.py
+-The output files will be generated in the parent directory:
+-results_spacing_from_slope.csv
+-results_detailed_peak_data.csv
+
+============================================================
+'''
+
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -5,8 +40,10 @@ from datetime import datetime
 import csv
 
 # Paths setup
-repo_root = Path(__file__).resolve().parents[1]
+repo_root = Path(__file__).resolve().parents[0]
+print(repo_root)
 results_dir = repo_root / 'results-from-generated-data'
+print(results_dir)
 source_file = results_dir / 'all_peaks_combined_sorted.csv'
 summary_csv = results_dir / 'results_spacing_from_slope.csv'
 detailed_csv = results_dir / 'results_detailed_peak_data.csv'
@@ -22,7 +59,7 @@ df['Peak Number'] = pd.to_numeric(df['Peak Number'], errors='coerce')
 df['Peak Index'] = pd.to_numeric(df['Peak Index'], errors='coerce')
 df['Peak Counts'] = pd.to_numeric(df['Peak Counts'], errors='coerce')
 df = df.dropna(subset=['Peak Number', 'Peak Index', 'Peak Counts'])
-
+#TODO auto clear the generated data so more dynamic
 # CSV Writers
 with open(summary_csv, mode='w', newline='') as f_summary, open(detailed_csv, mode='w', newline='') as f_detailed:
     summary_writer = csv.writer(f_summary)
@@ -88,130 +125,3 @@ with open(summary_csv, mode='w', newline='') as f_summary, open(detailed_csv, mo
                         ])
 
 print(f"✅ Final slope analysis written with fitted slopes to:\n  {summary_csv}\n  {detailed_csv}")
-
-
-
-#
-# # '''
-# # How It Works
-# # --------------------------------
-# # Data Loading:
-# # Reads the source file (../results_combined_peak_data.csv) and ensures numeric types for Peak Number, Peak Index, and Peak Counts.
-# # Drops rows with missing values in these columns.
-# #
-# # ==================================================
-# # Grouping:
-# # -Groups data by Channel (from filename), Gain Voltage (from filename), and Pulse Height (from filename).
-# # Calculations:
-# # --------------------------------------------
-# # Calculations for each group:
-# # -Sorts data by Peak Number.
-# # -Calculates slopes between consecutive peaks (Peak Index differences divided by Peak Number differences).
-# # -Computes the average slope and standard deviation of slopes.
-# #
-# # ======================================
-# # Output Writing:
-# # -Writes summary data to ../results_spacing_from_slope.csv.
-# # -Writes detailed data (including individual peak information) to ../results_detailed_peak_data.csv
-# #
-# # "number of slopes" is determined by how many consecutive pairs of peaks you have per curve.
-# # =======================================
-# #
-# # Usage
-# # -Place the source file (results_combined_peak_data.csv) in the appropriate directory.
-# # -Run the script:
-# # -python plot_index_vs_peak_num_detailed_analysis_table.py
-# # -The output files will be generated in the parent directory:
-# # -results_spacing_from_slope.csv
-# # -results_detailed_peak_data.csv
-# #
-# # ============================================================
-# from pathlib import Path
-# import pandas as pd
-# import numpy as np
-# from datetime import datetime
-# import csv
-#
-# # Get repo root (1 level up from single-channel-analysis)
-# repo_root = Path(__file__).resolve().parents[1]
-# results_dir = repo_root / 'results-from-generated-data'
-#
-# # Input & Output Paths
-# source_file = results_dir / 'all_peaks_combined_sorted.csv'
-# summary_csv = results_dir / 'results_spacing_from_slope.csv'
-# detailed_csv = results_dir / 'results_detailed_peak_data.csv'
-#
-# # Load Data
-# df = pd.read_csv(source_file)
-# df.columns = df.columns.str.strip()
-#
-# # Script provenance
-# script_name = Path(__file__).name
-#
-# # Ensure numeric
-# df['Peak Number'] = pd.to_numeric(df['Peak Number'], errors='coerce')
-# df['Peak Index'] = pd.to_numeric(df['Peak Index'], errors='coerce')
-# df['Peak Counts'] = pd.to_numeric(df['Peak Counts'], errors='coerce')
-# df = df.dropna(subset=['Peak Number', 'Peak Index', 'Peak Counts'])
-#
-# # Write CSVs
-# with open(summary_csv, mode='w', newline='') as f_summary, open(detailed_csv, mode='w', newline='') as f_detailed:
-#     summary_writer = csv.writer(f_summary)
-#     detailed_writer = csv.writer(f_detailed)
-#
-#     # Headers
-#     summary_writer.writerow([
-#         'Timestamp', 'Channel', 'Pulse Height (V)', 'Gain Voltage (V)',
-#         'State', 'Num Slopes Used', 'Average Spacing', 'Standard Deviation',
-#         'Source File(s)', 'Generated By'
-#     ])
-#     detailed_writer.writerow([
-#         'Timestamp', 'Channel', 'Pulse Height (V)', 'Gain Voltage (V)',
-#         'Peak Number', 'Peak Index', 'Peak Counts',
-#         'State', 'Num Slopes Used', 'Average Spacing', 'Standard Deviation',
-#         'Source File(s)', 'Generated By'
-#     ])
-#
-#     # Grouping loop
-#     for ch in df['Channel'].unique():
-#         df_ch = df[df['Channel'] == ch]
-#         for gain in sorted(df_ch['Voltage Gain (V)'].unique()):
-#             df_gain = df_ch[df_ch['Voltage Gain (V)'] == gain]
-#
-#             for pulse_height in sorted(df_gain['Pulse Voltage (V)'].unique()):
-#                 df_pulse = df_gain[df_gain['Pulse Voltage (V)'] == pulse_height].sort_values('Peak Number')
-#
-#                 # Metadata
-#                 state = df_pulse['State'].iloc[0] if 'State' in df_pulse.columns else 'unknown'
-#                 unique_sources = df_pulse['Source File'].dropna().unique() if 'Source File' in df_pulse.columns else [source_file.name]
-#                 source_files_str = "; ".join(str(s) for s in unique_sources)
-#
-#                 # Data points
-#                 x = df_pulse['Peak Number'].values
-#                 y = df_pulse['Peak Index'].values
-#                 counts = df_pulse['Peak Counts'].values
-#
-#                 if len(x) >= 2:
-#                     slopes = np.diff(y) / np.diff(x)
-#                     avg_slope = np.mean(slopes)
-#                     slope_std = np.std(slopes)
-#                     num_slopes = len(slopes)
-#                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-#
-#                     # Summary
-#                     summary_writer.writerow([
-#                         timestamp, ch, pulse_height, gain,
-#                         state, num_slopes, avg_slope, slope_std,
-#                         source_files_str, script_name
-#                     ])
-#
-#                     # Detailed per peak
-#                     for i in range(len(df_pulse)):
-#                         detailed_writer.writerow([
-#                             timestamp, ch, pulse_height, gain,
-#                             x[i], y[i], counts[i],
-#                             state, num_slopes, avg_slope, slope_std,
-#                             source_files_str, script_name
-#                         ])
-#
-# print(f"✅ Final slope analysis with Num Slopes Used written to:\n  {summary_csv}\n  {detailed_csv}")
