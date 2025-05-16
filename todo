@@ -1,3 +1,5 @@
 - unit test to ensure the values in the array of distance btween the peaks match table cell values
 - ask user for plotting only a certain duration and channel to not overwhelm with lots of plots
 - use the correct data table to make a new comparison of spacing between the peaks for each voltage (y axis the spacing and x axis the gain voltage)
+# TODO put the processed data from coincidence in results folder outputs there
+# TODO auto generate plot images to go into a separate folder so they are easier to retrieve

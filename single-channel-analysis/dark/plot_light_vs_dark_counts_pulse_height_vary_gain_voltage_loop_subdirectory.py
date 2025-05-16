@@ -195,7 +195,7 @@ for channel, channel_data in data_by_channel.items():
                     channel=channel,
                     gain_voltage=gain_v,
                     pulse_voltage=pulse_v,
-                    output_file=f"generated_peak_data_with_dark/peak_data_gain_voltage{gain_v}V_pulse_height{pulse_v}V.csv"
+                    output_file=f"dark/generated_peak_data_with_dark/peak_data_gain_voltage{gain_v}V_pulse_height{pulse_v}V.csv"
                 )
 
                 ax.set_title(f"{channel} — {gain_v} V gain, {pulse_v} V pulse", fontsize=10)
