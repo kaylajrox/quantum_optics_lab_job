@@ -18,19 +18,19 @@ There are two main analysis types:
 
 1. Run the Main Script
 
-> run_analysis_gui.py
+> `run_analysis_gui.py`
 
 * Input: 
 	
-	* gain_voltages_to_plot = [65.7] → only plots those gain voltages
+	* `gain_voltages_to_plot` = [65.7] → only plots those gain voltages
 
-	* crop_off_start, crop_off_end → clean noisy start/end
+	* `crop_off_start`, crop_off_end → clean noisy start/end
 
-	* counts_threshold, peak_spacing_threshold → tune peak detection
+	* `counts_threshold`, `peak_spacing_threshold` → tune peak detection
 
-	* sigma → smoothness of curve
+	* `sigma` → smoothness of curve
 
-	* manual_peak_indices → force specific peaks to be counted if auto fails
+	* `manual_peak_indices` → force specific peaks to be counted if auto fails
 
 * Output:
 
@@ -48,7 +48,7 @@ There are two main analysis types:
 
 * Before running:
 
-	* Make sure generated_peak_data_results/ is empty (delete old files first)
+	* Make sure `generated_peak_data_results`/ is empty (delete old files first)
 
 	* Set correct data_dir in the script (e.g., '20250428_more_light')
 
@@ -105,15 +105,15 @@ You can extract:
 	
 In single-channel-analysis:
 	
-	* plot_index_vs_peak.py
+	* `plot_index_vs_peak.py`
 
-		* Reads peak data from generated_peak_data_results/
+		* Reads peak data from `generated_peak_data_results`/
 
 		* Plots peak index (x-axis) vs. peak number (y-axis)
 
 		* Calculates slope of each curve (i.e., peak spacing trend)
 
-	* spacing_between_peaks.py
+	* `spacing_between_peaks`.py
 
 		* Also uses peak data
 
