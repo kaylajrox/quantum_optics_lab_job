@@ -1,37 +1,36 @@
 import matplotlib
-matplotlib.use('TkAgg')  # For PyCharm interactivity
+matplotlib.use('TkAgg')
 
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 import re
+import matplotlib.ticker as ticker
 
 # === CONFIG ===
 repo_root = Path(__file__).resolve().parents[1]
 coic_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_more_peaks_compare_coicdence"
 crop_start_amount = 100
-crop_end_amount = 3000
+crop_end_amount = 3150
+font_size = 20
 
-# === Function to extract peak numbers from folder name ===
+# === Data storage ===
+data_store = {
+    'Filtered': {'CH0': [], 'CH1': []},
+    'Unfiltered': {'CH0': [], 'CH1': []},
+    'Raw': {'CH0': [], 'CH1': []},
+}
+
+# === Extract peak numbers ===
 def extract_peak_numbers(folder_name):
     match = re.search(r"peak(\d+)_and(\d+)", folder_name)
     if match:
         return match.group(1), match.group(2)
-    else:
-        return None, None
+    return None, None
 
-# === Data storage ===
-all_addback_data = []
-all_ch0_data = []
-all_ch1_data = []
-
-# === Iterate over subfolders ===
+# === Iterate through directories ===
 for subfolder in sorted(coic_data_dir.iterdir()):
     if not subfolder.is_dir():
-        continue
-
-    # Only filtered folders
-    if "filtered" not in subfolder.name:
         continue
 
     peak1, peak2 = extract_peak_numbers(subfolder.name)
@@ -39,190 +38,72 @@ for subfolder in sorted(coic_data_dir.iterdir()):
         print(f"[SKIPPED] Could not parse peak numbers from {subfolder.name}")
         continue
 
-    print(f"[PROCESSING] {subfolder.name} | Peak {peak1} & {peak2}")
+    # Determine filter state: Filtered / Unfiltered / Raw
+    name_lower = subfolder.name.lower()
+    if "filtered" in name_lower:
+        filter_state = "Filtered"
+    elif "unfiltered" in name_lower:
+        filter_state = "Unfiltered"
+    else:
+        filter_state = "Raw"
 
-    # === Iterate over data files in subfolder ===
+    print(f"[PROCESSING] {subfolder.name} | Peak {peak1} & {peak2} | {filter_state}")
+
     for file_path in sorted(subfolder.glob("*.txt")):
+        filename = file_path.name
+
+        if filename.startswith("Data"):
+            print(f"[SKIPPED] {filename} (CSV-like file)")
+            continue
+
         try:
             data = np.loadtxt(file_path)
+            indices_cropped = np.arange(len(data))[crop_start_amount:-crop_end_amount]
             data_cropped = data[crop_start_amount:-crop_end_amount]
-            indices = np.arange(len(data_cropped))
         except Exception as e:
             print(f"[ERROR] Could not load {file_path}: {e}")
             continue
 
-        filename = file_path.name
         label = f"Peak {peak1} & {peak2}"
 
-        if "@AddBack" in filename:
-            all_addback_data.append((indices, data_cropped, label))
-        elif "CH0@" in filename:
-            all_ch0_data.append((indices, data_cropped, label))
+        if "CH0@" in filename:
+            data_store[filter_state]['CH0'].append((indices_cropped, data_cropped, label))
         elif "CH1@" in filename:
-            all_ch1_data.append((indices, data_cropped, label))
+            data_store[filter_state]['CH1'].append((indices_cropped, data_cropped, label))
 
-# === Split AddBack into >5000 and <=5000 groups ===
-addback_high = []
-addback_low = []
+# === Deduplicate legend labels ===
+def deduplicate_peak_labels(data_list):
+    seen = set()
+    deduped = []
+    for indices, values, label in data_list:
+        if label not in seen:
+            deduped.append((indices, values, label))
+            seen.add(label)
+    return deduped
 
-for indices, values, label in all_addback_data:
-    if np.max(values) > 5100:
-        addback_high.append((indices, values, label))
-    else:
-        addback_low.append((indices, values, label))
+# === Plot helper ===
+def plot_channel(data_list, title_text):
+    if not data_list:
+        print(f"[SKIPPED] {title_text} — no data found")
+        return
 
-# === Plot AddBack curves with max > 5100 ===
-if addback_high:
     plt.figure(figsize=(12, 7))
-    for indices, values, label in addback_high:
+
+    for indices, values, label in data_list:
         plt.plot(indices, values, lw=2, label=label)
-    plt.xlabel("Index")
-    plt.ylabel("Value")
-    plt.title("AddBack Curves (Max > 5100, Filtered)")
-    plt.grid(True)
-    plt.legend()
+
+    plt.xlabel("Index", fontsize=font_size)
+    plt.ylabel("Counts", fontsize=font_size)
+    plt.title(title_text, fontsize=font_size)
+    plt.gca().xaxis.set_major_formatter(ticker.FormatStrFormatter('%.0f'))
+    plt.tick_params(axis='x', labelsize=font_size)
+    plt.tick_params(axis='y', labelsize=font_size)
+    plt.grid(True, linestyle='-', linewidth=0.75, alpha=0.7)
+    plt.legend(fontsize=font_size-2, loc='best')
     plt.tight_layout()
     plt.show()
 
-# === Plot AddBack curves with max <= 5000 ===
-if addback_low:
-    plt.figure(figsize=(12, 7))
-    for indices, values, label in addback_low:
-        plt.plot(indices, values, lw=2, label=label)
-    plt.xlabel("Index")
-    plt.ylabel("Value")
-    plt.title("AddBack Curves (Max <= 5100, Filtered)")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-
-# === Plot all CH0 curves together ===
-if all_ch0_data:
-    plt.figure(figsize=(12, 7))
-    for indices, values, label in all_ch0_data:
-        plt.plot(indices, values, lw=2, label=label)
-    plt.xlabel("Index")
-    plt.ylabel("Value")
-    plt.title("All CH0 Curves (Filtered)")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-
-# === Plot all CH1 curves together ===
-if all_ch1_data:
-    plt.figure(figsize=(12, 7))
-    for indices, values, label in all_ch1_data:
-        plt.plot(indices, values, lw=2, label=label)
-    plt.xlabel("Index")
-    plt.ylabel("Value")
-    plt.title("All CH1 Curves (Filtered)")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-
-
-
-# import matplotlib
-# matplotlib.use('TkAgg')  # For PyCharm interactivity
-#
-# import numpy as np
-# import matplotlib.pyplot as plt
-# from pathlib import Path
-# import re
-#
-# # === CONFIG ===
-# repo_root = Path(__file__).resolve().parents[1]
-# coic_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_more_peaks_compare_coicdence"
-# crop_start_amount = 100
-# crop_end_amount = 3000
-#
-# # === Function to extract peak numbers ===
-# def extract_peak_numbers(folder_name):
-#     match = re.search(r"peak(\d+)_and(\d+)", folder_name)
-#     if match:
-#         return match.group(1), match.group(2)
-#     else:
-#         return None, None
-#
-# # === Data storage ===
-# all_addback_data = []
-# all_ch0_data = []
-# all_ch1_data = []
-#
-# # === Iterate over subfolders ===
-# for subfolder in sorted(coic_data_dir.iterdir()):
-#     if not subfolder.is_dir():
-#         continue
-#
-#     # Only filtered folders
-#     if "filtered" not in subfolder.name:
-#         continue
-#
-#     peak1, peak2 = extract_peak_numbers(subfolder.name)
-#     if not peak1:
-#         print(f"[SKIPPED] Could not parse peak numbers from {subfolder.name}")
-#         continue
-#
-#     print(f"[PROCESSING] {subfolder.name} | Peak {peak1} & {peak2}")
-#
-#     # === Iterate over files in subfolder ===
-#     for file_path in sorted(subfolder.glob("*.txt")):
-#         try:
-#             data = np.loadtxt(file_path)
-#             data_cropped = data[crop_start_amount:-crop_end_amount]
-#             indices = np.arange(len(data_cropped))
-#         except Exception as e:
-#             print(f"[ERROR] Could not load {file_path}: {e}")
-#             continue
-#
-#         filename = file_path.name
-#         label = f"Peak {peak1} & {peak2}"
-#
-#         if "@AddBack" in filename:
-#             all_addback_data.append((indices, data_cropped, label))
-#         elif "CH0@" in filename:
-#             all_ch0_data.append((indices, data_cropped, label))
-#         elif "CH1@" in filename:
-#             all_ch1_data.append((indices, data_cropped, label))
-#
-# # === Plot AddBack ===
-# if all_addback_data:
-#     plt.figure(figsize=(12, 7))
-#     for indices, values, label in all_addback_data:
-#         plt.plot(indices, values, lw=2, label=label)
-#     plt.xlabel("Index")
-#     plt.ylabel("Value")
-#     plt.title(f"All AddBack Curves (Filtered)")
-#     plt.grid(True)
-#     plt.legend()
-#     plt.tight_layout()
-#     plt.show()
-#
-# # === Plot CH0 ===
-# if all_ch0_data:
-#     plt.figure(figsize=(12, 7))
-#     for indices, values, label in all_ch0_data:
-#         plt.plot(indices, values, lw=2, label=label)
-#     plt.xlabel("Index")
-#     plt.ylabel("Value")
-#     plt.title(f"All CH0 Curves (Filtered)")
-#     plt.grid(True)
-#     plt.legend()
-#     plt.tight_layout()
-#     plt.show()
-#
-# # === Plot CH1 ===
-# if all_ch1_data:
-#     plt.figure(figsize=(12, 7))
-#     for indices, values, label in all_ch1_data:
-#         plt.plot(indices, values, lw=2, label=label)
-#     plt.xlabel("Index")
-#     plt.ylabel("Value")
-#     plt.title(f"All CH1 Curves (Filtered)")
-#     plt.grid(True)
-#     plt.legend()
-#     plt.tight_layout()
-#     plt.show()
+# === Plot all ===
+for state in ['Filtered', 'Unfiltered', 'Raw']:
+    plot_channel(deduplicate_peak_labels(data_store[state]['CH0']), f"CH0 Curves ({state})")
+    plot_channel(deduplicate_peak_labels(data_store[state]['CH1']), f"CH1 Curves ({state})")
