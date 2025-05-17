@@ -39,11 +39,13 @@ manual_peak_indices = {
 }
 
 # =================== HELPER FUNCTIONS ===================
+
 def extract_gain_and_pulse_voltages(filename):
-    match = re.search(r"_(\d+)_?(\d+)_gain_(\d+)_?(\d+)[Vv]?_pulse", filename)
+    match = re.search(r"CH(\d+)_gain_(\d+\.\d+)[Vv]?_pulse_(\d+\.\d+)[Vv]?", filename)
     if match:
-        gain = float(f"{match.group(1)}.{match.group(2)}")
-        pulse = float(f"{match.group(3)}.{match.group(4)}")
+        channel = int(match.group(1))
+        gain = float(match.group(2))
+        pulse = float(match.group(3))
         return gain, pulse
     return None, None
 
@@ -158,3 +160,5 @@ for ax, channel in zip(axes, channels):
 
 plt.tight_layout()
 plt.show()
+
+
