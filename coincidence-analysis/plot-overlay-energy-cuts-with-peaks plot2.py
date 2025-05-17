@@ -14,6 +14,10 @@ crop_start_amount = 100
 crop_end_amount = 3150
 font_size = 20
 
+# === Plot Toggles ===
+plot_unfiltered = False
+plot_raw = False
+
 # === Data storage ===
 data_store = {
     'Filtered': {'CH0': [], 'CH1': []},
@@ -28,7 +32,7 @@ def extract_peak_numbers(folder_name):
         return match.group(1), match.group(2)
     return None, None
 
-# === Iterate through directories ===
+# === Iterate directories ===
 for subfolder in sorted(coic_data_dir.iterdir()):
     if not subfolder.is_dir():
         continue
@@ -38,7 +42,6 @@ for subfolder in sorted(coic_data_dir.iterdir()):
         print(f"[SKIPPED] Could not parse peak numbers from {subfolder.name}")
         continue
 
-    # Determine filter state: Filtered / Unfiltered / Raw
     name_lower = subfolder.name.lower()
     if "filtered" in name_lower:
         filter_state = "Filtered"
@@ -71,7 +74,7 @@ for subfolder in sorted(coic_data_dir.iterdir()):
         elif "CH1@" in filename:
             data_store[filter_state]['CH1'].append((indices_cropped, data_cropped, label))
 
-# === Deduplicate legend labels ===
+# === Deduplicate peak labels ===
 def deduplicate_peak_labels(data_list):
     seen = set()
     deduped = []
@@ -103,7 +106,16 @@ def plot_channel(data_list, title_text):
     plt.tight_layout()
     plt.show()
 
-# === Plot all ===
-for state in ['Filtered', 'Unfiltered', 'Raw']:
-    plot_channel(deduplicate_peak_labels(data_store[state]['CH0']), f"CH0 Curves ({state})")
-    plot_channel(deduplicate_peak_labels(data_store[state]['CH1']), f"CH1 Curves ({state})")
+# === Always plot Filtered ===
+plot_channel(deduplicate_peak_labels(data_store['Filtered']['CH0']), "CH0 Curves (Filtered)")
+plot_channel(deduplicate_peak_labels(data_store['Filtered']['CH1']), "CH1 Curves (Filtered)")
+
+# === Conditionally plot Unfiltered ===
+if plot_unfiltered:
+    plot_channel(deduplicate_peak_labels(data_store['Unfiltered']['CH0']), "CH0 Curves (Unfiltered)")
+    plot_channel(deduplicate_peak_labels(data_store['Unfiltered']['CH1']), "CH1 Curves (Unfiltered)")
+
+# === Conditionally plot Raw ===
+if plot_raw:
+    plot_channel(deduplicate_peak_labels(data_store['Raw']['CH0']), "CH0 Curves (Raw)")
+    plot_channel(deduplicate_peak_labels(data_store['Raw']['CH1']), "CH1 Curves (Raw)")
