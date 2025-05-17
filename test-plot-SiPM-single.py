@@ -161,4 +161,10 @@ for ax, channel in zip(axes, channels):
 plt.tight_layout()
 plt.show()
 
+# sanity checker
 
+if __name__ == "__main__":
+    test = "peak_data_CH0_gain_65.7V_pulse_1.0V.csv"
+    gain, pulse = extract_gain_and_pulse_voltages(test)
+    print("TEST GAIN:", gain)
+    print("TEST PULSE:", pulse)
