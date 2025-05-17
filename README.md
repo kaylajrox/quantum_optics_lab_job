@@ -18,9 +18,19 @@ There are two main analysis types:
 
 1. Run the Main Script
 
-> plot-fit-peaks-SiPM-data.py
+> run_analysis_gui.py
 
-* Input: Raw CoMPASS run folders inside data-photon-counts-SiPM/
+* Input: 
+	
+	* gain_voltages_to_plot = [65.7] → only plots those gain voltages
+
+	* crop_off_start, crop_off_end → clean noisy start/end
+
+	* counts_threshold, peak_spacing_threshold → tune peak detection
+
+	* sigma → smoothness of curve
+
+	* manual_peak_indices → force specific peaks to be counted if auto fails
 
 * Output:
 
@@ -44,31 +54,7 @@ There are two main analysis types:
 
 	* You can tweak smoothing, peak threshold, etc.
 	
-2. Run the First Analysis Scripts
 
-	1. > cd single-channel-analysis 
-	
-	2. > .\plot_index_vs_peak.py
-
-		* Reads peak data from generated_peak_data_results/
-
-		* Plots peak index (x-axis) vs. peak number (y-axis)
-
-		* Calculates slope of each curve (i.e., peak spacing trend)
-
-	3. > .\spacing_between_peaks.py
-
-		* Also uses peak data
-
-		* Shows how the spacing between peaks varies with peak number
-
-		* This helps see if spacing is regular, how it changes with light/gain
-
-	* Each creates:
-
-		* Plots in its own folder (index_vs_peak_data_results/, etc.)
-
-		* CSV files with calculated slopes or spacings
 
 # Optional: Dark vs Light Comparison
 
@@ -104,19 +90,7 @@ You can extract:
 
 * Same info about gain/pulse
 
-#Free Parameters in plot-fit-peaks-SiPM-data.py
 
-You can tweak:
-
-gain_voltages_to_plot = [65.7] → only plots those gain voltages
-
-crop_off_start, crop_off_end → clean noisy start/end
-
-counts_threshold, peak_spacing_threshold → tune peak detection
-
-sigma → smoothness of curve
-
-manual_peak_indices → force specific peaks to be counted if auto fails
 
 # Common Issues
 
@@ -126,3 +100,29 @@ manual_peak_indices → force specific peaks to be counted if auto fails
 
 * Make sure each run folder inside data-photon-counts-SiPM/ is well-formed (naming conventions matter).
 
+
+# Script Descriptions 
+	
+In single-channel-analysis:
+	
+	* plot_index_vs_peak.py
+
+		* Reads peak data from generated_peak_data_results/
+
+		* Plots peak index (x-axis) vs. peak number (y-axis)
+
+		* Calculates slope of each curve (i.e., peak spacing trend)
+
+	* spacing_between_peaks.py
+
+		* Also uses peak data
+
+		* Shows how the spacing between peaks varies with peak number
+
+		* This helps see if spacing is regular, how it changes with light/gain
+
+	* Each creates:
+
+		* Plots in its own folder (index_vs_peak_data_results/, etc.)
+
+		* CSV files with calculated slopes or spacings
