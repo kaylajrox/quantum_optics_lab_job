@@ -14,6 +14,9 @@ crop_start_amount = 100
 crop_end_amount = 3150
 font_size = 20
 
+# === Peaks to EXCLUDE ===
+exclude_peak_numbers = ["5", "9"]
+
 # === Plot Toggles ===
 plot_unfiltered = False
 plot_raw = False
@@ -24,6 +27,9 @@ data_store = {
     'Unfiltered': {'CH0': [], 'CH1': []},
     'Raw': {'CH0': [], 'CH1': []},
 }
+
+# === Label counts ===
+label_counts = {}
 
 # === Extract peak numbers ===
 def extract_peak_numbers(folder_name):
@@ -42,13 +48,20 @@ for subfolder in sorted(coic_data_dir.iterdir()):
         print(f"[SKIPPED] Could not parse peak numbers from {subfolder.name}")
         continue
 
+    # Exclude peaks logic
+    if peak1 in exclude_peak_numbers or peak2 in exclude_peak_numbers:
+        print(f"[SKIPPED] {subfolder.name} — peaks excluded: {exclude_peak_numbers}")
+        continue
+
+    # Filter state detection
     name_lower = subfolder.name.lower()
     if "filtered" in name_lower:
         filter_state = "Filtered"
     elif "unfiltered" in name_lower:
         filter_state = "Unfiltered"
     else:
-        filter_state = "Raw"
+        print(f"[SKIPPED] {subfolder.name} — no 'filtered'/'unfiltered' keyword found, skipping")
+        continue
 
     print(f"[PROCESSING] {subfolder.name} | Peak {peak1} & {peak2} | {filter_state}")
 
@@ -56,7 +69,6 @@ for subfolder in sorted(coic_data_dir.iterdir()):
         filename = file_path.name
 
         if filename.startswith("Data"):
-            print(f"[SKIPPED] {filename} (CSV-like file)")
             continue
 
         try:
@@ -67,22 +79,18 @@ for subfolder in sorted(coic_data_dir.iterdir()):
             print(f"[ERROR] Could not load {file_path}: {e}")
             continue
 
+        # Build and uniquify label
         label = f"Peak {peak1} & {peak2}"
+        channel = "CH0" if "CH0@" in filename else "CH1"
+        label_key = (filter_state, channel, label)
 
-        if "CH0@" in filename:
-            data_store[filter_state]['CH0'].append((indices_cropped, data_cropped, label))
-        elif "CH1@" in filename:
-            data_store[filter_state]['CH1'].append((indices_cropped, data_cropped, label))
+        count = label_counts.get(label_key, 0) + 1
+        label_counts[label_key] = count
 
-# === Deduplicate peak labels ===
-def deduplicate_peak_labels(data_list):
-    seen = set()
-    deduped = []
-    for indices, values, label in data_list:
-        if label not in seen:
-            deduped.append((indices, values, label))
-            seen.add(label)
-    return deduped
+        if count > 1:
+            label = f"{label} ({count})"
+
+        data_store[filter_state][channel].append((indices_cropped, data_cropped, label))
 
 # === Plot helper ===
 def plot_channel(data_list, title_text):
@@ -106,16 +114,31 @@ def plot_channel(data_list, title_text):
     plt.tight_layout()
     plt.show()
 
-# === Always plot Filtered ===
-plot_channel(deduplicate_peak_labels(data_store['Filtered']['CH0']), "CH0 Curves (Filtered)")
-plot_channel(deduplicate_peak_labels(data_store['Filtered']['CH1']), "CH1 Curves (Filtered)")
+# === Grouped by Instance plotting ===
+def plot_channel_grouped_by_instance(data_list, title_base):
+    grouped = {}
+    for indices, values, label in data_list:
+        match = re.search(r"\((\d+)\)$", label)
+        instance = match.group(1) if match else "1"
 
-# === Conditionally plot Unfiltered ===
+        if instance not in grouped:
+            grouped[instance] = []
+        grouped[instance].append((indices, values, label))
+
+    for instance, curves in grouped.items():
+        title = f"{title_base} — Instance {instance}"
+        plot_channel(curves, title)
+
+# === Plot Filtered grouped ===
+plot_channel_grouped_by_instance(data_store['Filtered']['CH0'], "CH0 Curves (Filtered)")
+plot_channel_grouped_by_instance(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)")
+
+# === Plot Unfiltered grouped ===
 if plot_unfiltered:
-    plot_channel(deduplicate_peak_labels(data_store['Unfiltered']['CH0']), "CH0 Curves (Unfiltered)")
-    plot_channel(deduplicate_peak_labels(data_store['Unfiltered']['CH1']), "CH1 Curves (Unfiltered)")
+    plot_channel_grouped_by_instance(data_store['Unfiltered']['CH0'], "CH0 Curves (Unfiltered)")
+    plot_channel_grouped_by_instance(data_store['Unfiltered']['CH1'], "CH1 Curves (Unfiltered)")
 
-# === Conditionally plot Raw ===
+# === Plot Raw grouped ===
 if plot_raw:
-    plot_channel(deduplicate_peak_labels(data_store['Raw']['CH0']), "CH0 Curves (Raw)")
-    plot_channel(deduplicate_peak_labels(data_store['Raw']['CH1']), "CH1 Curves (Raw)")
+    plot_channel_grouped_by_instance(data_store['Raw']['CH0'], "CH0 Curves (Raw)")
+    plot_channel_grouped_by_instance(data_store['Raw']['CH1'], "CH1 Curves (Raw)")
