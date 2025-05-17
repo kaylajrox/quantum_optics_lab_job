@@ -35,12 +35,12 @@ def analyze_and_save_slopes(df, results_dir, script_name):
 
         for ch in df['Channel'].unique():
             df_ch = df[df['Channel'] == ch]
-            gain_voltages = sorted(df_ch['Voltage Gain (V)'].unique())
+            gain_voltages = sorted(df_ch['Gain Voltage (V)'].unique())
 
             for gain in gain_voltages:
-                df_gain = df_ch[df_ch['Voltage Gain (V)'] == gain]
-                for pulse_height in sorted(df_gain['Pulse Voltage (V)'].unique()):
-                    df_pulse = df_gain[df_gain['Pulse Voltage (V)'] == pulse_height]
+                df_gain = df_ch[df_ch['Gain Voltage (V)'] == gain]
+                for pulse_height in sorted(df_gain['Pulse Height (V)'].unique()):
+                    df_pulse = df_gain[df_gain['Pulse Height (V)'] == pulse_height]
 
                     # === Exclude peaks before processing ===
                     df_pulse = df_pulse[~df_pulse['Peak Number'].isin(excluded_peaks)]
@@ -107,14 +107,14 @@ pulse_color_map = {1.0: 'black', 1.1: 'darkblue', 1.3: 'green', 1.6: 'orange', 2
 
 for ch in df['Channel'].unique():
     df_ch = df[df['Channel'] == ch]
-    gain_voltages = sorted(df_ch['Voltage Gain (V)'].unique())
+    gain_voltages = sorted(df_ch['Gain Voltage (V)'].unique())
 
     for gain in gain_voltages:
         plt.figure(figsize=(10, 6))
-        df_gain = df_ch[df_ch['Voltage Gain (V)'] == gain]
+        df_gain = df_ch[df_ch['Gain Voltage (V)'] == gain]
 
-        for pulse_height in sorted(df_gain['Pulse Voltage (V)'].unique()):
-            df_pulse = df_gain[df_gain['Pulse Voltage (V)'] == pulse_height]
+        for pulse_height in sorted(df_gain['Pulse Height (V)'].unique()):
+            df_pulse = df_gain[df_gain['Pulse Height (V)'] == pulse_height]
 
             # === Exclude peaks before plotting ===
             df_pulse = df_pulse[~df_pulse['Peak Number'].isin(excluded_peaks)]
