@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('TkAgg')  # For PyCharm interactivity
+matplotlib.use('TkAgg')  # Use TkAgg backend for interactivity in PyCharm
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,158 +8,168 @@ import re
 import matplotlib.ticker as ticker
 
 # === CONFIGURATION ===
-exclude_peak_numbers = ["5", "7", "9"]
-crop_start_amount = 100
-crop_end_amount = 3000
-font_size = 20
-baseline_multiplier_cap = 10
+exclude_peak_numbers = ["5", "7", "9"]  # Peaks to exclude
+crop_start_amount = 100  # How much to crop from start of signal
+crop_end_amount = 3000  # How much to crop from end of signal
+font_size = 20  # Font size for plots
+baseline_multiplier_cap = 10  # Max allowed scaling of baseline overlay
 
+# Paths to data directories
 repo_root = Path(__file__).resolve().parents[2]
 coic_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_more_peaks_compare_coicdence"
 baseline_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_baseline_data_for_coic_comparison" / "65_7_gain_1_6_pulse_60s"
 
+# Flags to enable/disable plotting of data types
 plot_unfiltered = False
 plot_raw = False
 
-# === Storage ===
-data_store = {'Filtered': {'CH0': [], 'CH1': []}, 'Unfiltered': {'CH0': [], 'CH1': []}, 'Raw': {'CH0': [], 'CH1': []}}
+# === DATA STORAGE ===
+data_store = {
+    'Filtered': {'CH0': [], 'CH1': []},
+    'Unfiltered': {'CH0': [], 'CH1': []},
+    'Raw': {'CH0': [], 'CH1': []},
+    'AB Filtered': {'CH0': [], 'CH1': []},
+}
 baseline_store = {'CH0': [], 'CH1': []}
-label_counts = {}
+label_counts = {}  # Track duplicates
 global_plot_index = 0
 
-# === DEBUG ===
 print(f"[DEBUG] Baseline directory path: {baseline_data_dir}")
 print(f"[DEBUG] Coincidence directory path: {coic_data_dir}")
 
-# === Load Baseline Files ===
+# === LOAD BASELINE FILES ===
 for file_path in baseline_data_dir.glob("*.txt"):
     filename = file_path.name
-    print(f"[DEBUG] Checking file: {filename}")
-
     if not filename.startswith("CH0@") and not filename.startswith("CH1@"):
-        print(f"[SKIPPED] {filename} — does not start with CH0@ or CH1@")
         continue
-
     try:
         data = np.loadtxt(file_path)
         indices_cropped = np.arange(len(data))[crop_start_amount:-crop_end_amount]
         data_cropped = data[crop_start_amount:-crop_end_amount]
+        channel = "CH0" if "CH0@" in filename else "CH1"
+        label = f"Baseline ({channel})"
+        baseline_store[channel].append((indices_cropped, data_cropped, label))
+        print(f"[LOADED] Baseline for {channel} from {filename}")
     except Exception as e:
         print(f"[ERROR] Could not load baseline {file_path}: {e}")
-        continue
 
-    channel = "CH0" if "CH0@" in filename else "CH1"
-    label = f"Baseline ({channel})"
-    baseline_store[channel].append((indices_cropped, data_cropped, label))
-    print(f"[LOADED] Baseline for {channel} from {filename}")
 
-# === Post-loading summary ===
-print(f"[SUMMARY] Loaded baseline curves:")
-for ch in baseline_store:
-    print(f"  {ch}: {len(baseline_store[ch])} curves")
+# === PEAK EXTRACTION FROM FOLDER NAME ===
+def extract_peaks(folder_name):
+    match = re.search(r"peak(\d+)_and(\d+)", folder_name)
+    return (match.group(1), match.group(2)) if match else (None, None)
 
-# === Extract peak numbers ===
-def extract_peaks(folder):
-    m = re.search(r"peak(\d+)_and(\d+)", folder)
-    return (m.group(1), m.group(2)) if m else (None, None)
 
-# === Load Coincidence Data ===
+# === LOAD COINCIDENCE DATA ===
 for subfolder in sorted(coic_data_dir.iterdir()):
     if not subfolder.is_dir():
         continue
 
     peak1, peak2 = extract_peaks(subfolder.name)
     if not peak1 or peak1 in exclude_peak_numbers or peak2 in exclude_peak_numbers:
-        print(f"[SKIPPED] {subfolder.name}")
         continue
 
     name_lower = subfolder.name.lower()
-    if "filtered" in name_lower:
-        filter_state = "Filtered"
+
+    # Determine filter state
+    if "raw" in name_lower and not plot_raw:
+        print(f"[SKIPPED] {subfolder.name} (raw data skipped)")
+        continue
     elif "unfiltered" in name_lower:
-        filter_state = "Unfiltered"
+        base_filter_state = "Unfiltered"
+    elif "filtered" in name_lower:
+        base_filter_state = "Filtered"
     else:
         print(f"[SKIPPED] {subfolder.name} (missing filter status)")
         continue
 
-    print(f"[PROCESSING] {subfolder.name} — Peaks {peak1} & {peak2} — {filter_state}")
+    print(f"[PROCESSING] {subfolder.name} — Peaks {peak1} & {peak2} — {base_filter_state}")
+
     for file_path in sorted(subfolder.glob("*.txt")):
         fname = file_path.name
         if fname.startswith("Data"):
             continue
+
         try:
             data = np.loadtxt(file_path)
-            indices = np.arange(len(data))[crop_start_amount:-crop_end_amount]  # retain original index range
+            indices = np.arange(len(data))[crop_start_amount:-crop_end_amount]
             data_cropped = data[crop_start_amount:-crop_end_amount]
-            label = f"Peak {peak1} & {peak2}"
+
             ch = "CH0" if "CH0@" in fname else "CH1"
-            key = (filter_state, ch, label)
-            label_counts[key] = label_counts.get(key, 0) + 1
-            if label_counts[key] > 1:
-                label += f" ({label_counts[key]})"
-            data_store[filter_state][ch].append((indices, data_cropped, label))
+            filter_state = "AB Filtered" if fname.startswith("0@AddBack") else base_filter_state
+            print(f"[DEBUG] File: {fname}, Channel: {ch}, Filter: {filter_state}")
+
+            plot_label = f"Peak {peak1} & {peak2}"
+            legend_key = (filter_state, ch, plot_label)
+            label_counts[legend_key] = label_counts.get(legend_key, 0) + 1
+
+            if label_counts[legend_key] > 1:
+                plot_label += f" ({label_counts[legend_key]})"
+
+            data_store[filter_state][ch].append((indices, data_cropped, plot_label))
+
         except Exception as e:
             print(f"[ERROR] Could not load {file_path}: {e}")
 
 
-# === Compute Scaling Factor ===
+# === SCALE BASELINE TO MATCH SIGNAL ===
 def get_scaling_factor(baseline, curves):
+    if not curves:
+        return 1  # fallback if empty
     max_baseline = np.max(baseline)
     max_signal = max(np.max(y) for _, y, _ in curves)
     return min((max_signal / max_baseline) if max_baseline else 1, baseline_multiplier_cap)
 
-# === Group & Plot ===
+
+# === PLOTTING FUNCTION ===
 def plot_grouped(data_list, title_prefix, ch):
     global global_plot_index
-    grouped = {}
+
+    if not data_list:
+        print(f"[WARNING] Skipping plot for {title_prefix} — no data found.")
+        return
+
+    global_plot_index += 1
+    title = title_prefix
+
+    print(f"\n[INFO] === Plot #{global_plot_index} ({ch}) ===")
+    print(f"[INFO] Plot title: {title}")
+    print(f"[INFO] Number of curves: {len(data_list)}")
+
+    plt.figure(figsize=(12, 7))
 
     for x, y, label in data_list:
-        instance = re.search(r"\((\d+)\)$", label)
-        key = instance.group(1) if instance else "1"
-        grouped.setdefault(key, []).append((x, y, label))
+        plt.plot(x, y, lw=2, label=label)
+        print(f"[INFO]   Label: {label}")
 
-    for instance, curves in grouped.items():
-        global_plot_index += 1
-        title = f"{title_prefix} — Instance {instance}"
-        plt.figure(figsize=(12, 7))
-        for x, y, label in curves:
-            plt.plot(x, y, lw=2, label=label)
+    for bx, by, blabel in baseline_store[ch]:
+        scale = get_scaling_factor(by, data_list)
+        print(f"[INFO]   Baseline: {blabel} scaled ×{scale:.2f}")
+        plt.plot(bx, by * scale, color="orange", lw=2, linestyle="--", label=f"{blabel} ×{scale:.1f}")
 
-        # Always overlay baseline if available
-        print(f"[INFO] Plot #{global_plot_index}: Overlaying {len(baseline_store[ch])} baselines for {ch}")
-        for bx, by, blabel in baseline_store[ch]:
-            scale = get_scaling_factor(by, curves)
-            print(f"[INFO]   {blabel} scaled ×{scale:.2f}")
-            plt.plot(bx, by * scale, color="orange", lw=2, label=f"{blabel} ×{scale:.1f}")
+    plt.xlabel("Index", fontsize=font_size)
+    plt.ylabel("Counts", fontsize=font_size)
+    plt.title(title, fontsize=font_size)
+    plt.grid(True, linestyle='-', linewidth=0.75, alpha=0.7)
+    plt.gca().xaxis.set_major_formatter(ticker.FormatStrFormatter('%.0f'))
+    plt.tick_params(axis='x', labelsize=font_size)
+    plt.tick_params(axis='y', labelsize=font_size)
+    plt.legend(fontsize=font_size - 2)
+    plt.tight_layout()
+    plt.show()
 
-        plt.xlabel("Index", fontsize=font_size)
-        plt.ylabel("Counts", fontsize=font_size)
-        plt.title(title, fontsize=font_size)
-        plt.grid(True, linestyle='-', linewidth=0.75, alpha=0.7)
-        plt.gca().xaxis.set_major_formatter(ticker.FormatStrFormatter('%.0f'))
-        plt.tick_params(axis='x', labelsize=font_size)
-        plt.tick_params(axis='y', labelsize=font_size)
-        plt.legend(fontsize=font_size-2)
-        plt.tight_layout()
-        plt.show()
 
 # === EXECUTE PLOTS ===
 plot_grouped(data_store['Filtered']['CH0'], "CH0 Curves (Filtered)", "CH0")
 plot_grouped(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)", "CH1")
-#
-# if plot_unfiltered:
-#     plot_grouped(data_store['Unfiltered']['CH0'], "CH0 Curves (Unfiltered)", "CH0")
-#     plot_grouped(data_store['Unfiltered']['CH1'], "CH1 Curves (Unfiltered)", "CH1")
-#
-# if plot_raw:
-#     plot_grouped(data_store['Raw']['CH0'], "CH0 Curves (Raw)", "CH0")
-#     plot_grouped(data_store['Raw']['CH1'], "CH1 Curves (Raw)", "CH1")
-
+plot_grouped(data_store['AB Filtered']['CH0'], "CH0 Curves (AB Filtered)", "CH0")
+plot_grouped(data_store['AB Filtered']['CH1'], "CH1 Curves (AB Filtered)", "CH1")
 
 
 
 # import matplotlib
-# matplotlib.use('TkAgg')  # For PyCharm interactivity
+#
+# matplotlib.use('TkAgg')  # Use TkAgg backend for interactivity in PyCharm
 #
 # import numpy as np
 # import matplotlib.pyplot as plt
@@ -168,148 +178,191 @@ plot_grouped(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)", "CH1")
 # import matplotlib.ticker as ticker
 #
 # # === CONFIGURATION ===
-# exclude_peak_numbers = ["5", "7", "9"]
-# crop_start_amount = 100
-# crop_end_amount = 3000
-# font_size = 20
-# baseline_multiplier_cap = 10
+# exclude_peak_numbers = ["5", "7", "9"]  # Peaks to exclude
+# crop_start_amount = 100  # How much to crop from start of signal
+# crop_end_amount = 3000  # How much to crop from end of signal
+# font_size = 20  # Font size for plots
+# baseline_multiplier_cap = 10  # Max allowed scaling of baseline overlay
 #
-# repo_root = Path(__file__).resolve().parents[1]
+# # Paths to data directories
+# repo_root = Path(__file__).resolve().parents[2]
 # coic_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_more_peaks_compare_coicdence"
-# baseline_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_baseline_data_for_coic_comparison"
+# baseline_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_baseline_data_for_coic_comparison" / "65_7_gain_1_6_pulse_60s"
 #
+# # Flags to enable/disable plotting of data types
 # plot_unfiltered = False
 # plot_raw = False
 #
-# # === Storage ===
+# # === DATA STORAGE ===
 # data_store = {'Filtered': {'CH0': [], 'CH1': []}, 'Unfiltered': {'CH0': [], 'CH1': []}, 'Raw': {'CH0': [], 'CH1': []}}
 # baseline_store = {'CH0': [], 'CH1': []}
-# label_counts = {}
+# label_counts = {}  # Track duplicates
 # global_plot_index = 0
 #
-# # === Load Baseline Files ===
+# # === DEBUG PRINT ===
+# print(f"[DEBUG] Baseline directory path: {baseline_data_dir}")
+# print(f"[DEBUG] Coincidence directory path: {coic_data_dir}")
+#
+# # === LOAD BASELINE FILES ===
 # for file_path in baseline_data_dir.glob("*.txt"):
-#     fname = file_path.name
-#     if not fname.startswith("CH0@") and not fname.startswith("CH1@"):
+#     filename = file_path.name
+#     if not filename.startswith("CH0@") and not filename.startswith("CH1@"):
 #         continue
 #     try:
 #         data = np.loadtxt(file_path)
+#         indices_cropped = np.arange(len(data))[crop_start_amount:-crop_end_amount]
 #         data_cropped = data[crop_start_amount:-crop_end_amount]
-#         indices = np.arange(len(data_cropped))
-#         ch = "CH0" if "CH0@" in fname else "CH1"
-#         baseline_store[ch].append((indices, data_cropped, f"Baseline ({ch})"))
+#         channel = "CH0" if "CH0@" in filename else "CH1"
+#         label = f"Baseline ({channel})"
+#         baseline_store[channel].append((indices_cropped, data_cropped, label))
+#         print(f"[LOADED] Baseline for {channel} from {filename}")
 #     except Exception as e:
 #         print(f"[ERROR] Could not load baseline {file_path}: {e}")
 #
-# print("Loaded baseline files:")
-# for ch in baseline_store:
-#     print(f"{ch}: {len(baseline_store[ch])} curves")
+#
+# # === PEAK EXTRACTION FROM FOLDER NAME ===
+# def extract_peaks(folder_name):
+#     match = re.search(r"peak(\d+)_and(\d+)", folder_name)
+#     return (match.group(1), match.group(2)) if match else (None, None)
 #
 #
-# # === Extract peak numbers ===
-# def extract_peaks(folder):
-#     m = re.search(r"peak(\d+)_and(\d+)", folder)
-#     return (m.group(1), m.group(2)) if m else (None, None)
-#
-# # === Load Coincidence Data ===
+# # === LOAD COINCIDENCE DATA ===
 # for subfolder in sorted(coic_data_dir.iterdir()):
 #     if not subfolder.is_dir():
 #         continue
 #
 #     peak1, peak2 = extract_peaks(subfolder.name)
 #     if not peak1 or peak1 in exclude_peak_numbers or peak2 in exclude_peak_numbers:
-#         print(f"[SKIPPED] {subfolder.name}")
 #         continue
 #
 #     name_lower = subfolder.name.lower()
-#     if "filtered" in name_lower:
-#         filter_state = "Filtered"
+#
+#     # Determine filter state
+#     if "raw" in name_lower and not plot_raw:
+#         print(f"[SKIPPED] {subfolder.name} (raw data skipped)")
+#         continue
 #     elif "unfiltered" in name_lower:
 #         filter_state = "Unfiltered"
+#     elif "filtered" in name_lower:
+#         filter_state = "Filtered"
 #     else:
 #         print(f"[SKIPPED] {subfolder.name} (missing filter status)")
 #         continue
 #
 #     print(f"[PROCESSING] {subfolder.name} — Peaks {peak1} & {peak2} — {filter_state}")
+#
 #     for file_path in sorted(subfolder.glob("*.txt")):
 #         fname = file_path.name
+#
+#         # ✅ Override filter state if the file is from AddBack
+#         if fname.startswith("0@AddBack"):
+#             filter_state = "AB Filtered"
+#
 #         if fname.startswith("Data"):
 #             continue
+#
 #         try:
 #             data = np.loadtxt(file_path)
+#             indices = np.arange(len(data))[crop_start_amount:-crop_end_amount]
 #             data_cropped = data[crop_start_amount:-crop_end_amount]
-#             indices = np.arange(len(data_cropped))
-#             label = f"Peak {peak1} & {peak2}"
+#
+#
 #             ch = "CH0" if "CH0@" in fname else "CH1"
-#             key = (filter_state, ch, label)
-#             label_counts[key] = label_counts.get(key, 0) + 1
-#             if label_counts[key] > 1:
-#                 label += f" ({label_counts[key]})"
-#             data_store[filter_state][ch].append((indices, data_cropped, label))
+#             print(f"[DEBUG] File: {fname}, Channel: {ch}, Label: {label}, Filter: {filter_state}")
+#
+#             #label = f"{filter_state} — Peak {peak1} & {peak2}"
+#             plot_label = f"Peak {peak1} & {peak2}"
+#             legend_key = (filter_state, ch, plot_label)
+#             label_counts[legend_key] = label_counts.get(legend_key, 0) + 1
+#
+#             # Append number if repeated
+#             if label_counts[legend_key] > 1:
+#                 plot_label += f" ({label_counts[legend_key]})"
+#
+#             # Store the data using label for the legend only
+#             data_store[filter_state][ch].append((indices, data_cropped, plot_label))
+#
 #         except Exception as e:
 #             print(f"[ERROR] Could not load {file_path}: {e}")
 #
-# # === Compute Scaling Factor ===
+#
+# # === SCALE BASELINE TO MATCH SIGNAL ===
 # def get_scaling_factor(baseline, curves):
 #     max_baseline = np.max(baseline)
 #     max_signal = max(np.max(y) for _, y, _ in curves)
 #     return min((max_signal / max_baseline) if max_baseline else 1, baseline_multiplier_cap)
 #
-# # === Group & Plot ===
+#
+# # === PLOTTING FUNCTION ===
+#
+# # === PLOTTING FUNCTION ===
 # def plot_grouped(data_list, title_prefix, ch):
 #     global global_plot_index
-#     grouped = {}
+#
+#     # Increment global counter for plot tracking
+#     global_plot_index += 1
+#     title = title_prefix
+#
+#     print(f"\n[INFO] === Plot #{global_plot_index} ({ch}) ===")
+#     print(f"[INFO] Plot title: {title}")
+#     print(f"[INFO] Number of curves: {len(data_list)}")
+#
+#     plt.figure(figsize=(12, 7))
 #
 #     for x, y, label in data_list:
-#         instance = re.search(r"\((\d+)\)$", label)
-#         key = instance.group(1) if instance else "1"
-#         grouped.setdefault(key, []).append((x, y, label))
+#         plt.plot(x, y, lw=2, label=label)
 #
-#     for instance, curves in grouped.items():
-#         global_plot_index += 1
-#         title = f"{title_prefix} — Instance {instance}"
-#         plt.figure(figsize=(12, 7))
-#         for x, y, label in curves:
-#             plt.plot(x, y, lw=2, label=label)
+#         # Extract file name from label
+#         m = re.search(r'\| File: (.+)', label)
+#         source_file = m.group(1) if m else "Unknown"
 #
-#         # Always overlay baseline
-#         for bx, by, blabel in baseline_store[ch]:
-#             scale = get_scaling_factor(by, curves)
-#             print(f"[INFO] Overlaying baseline on plot #{global_plot_index} with scale ×{scale:.2f}")
-#             plt.plot(
-#                 bx,
-#                 by * scale,
-#                 lw=2,
-#                 linestyle='--',
-#                 color='orange',
-#                 label=f"{blabel} ×{scale:.1f}"
-#             )
+#         # Extract filter state from beginning
+#         filter_state = label.split('—')[0].strip()
+#         try:
+#             peaks_info = label.split('—')[1].split('|')[0].strip()
+#         except IndexError:
+#             peaks_info = label  # fallback if label does not contain '—'
 #
-#         plt.xlabel("Index", fontsize=font_size)
-#         plt.ylabel("Counts", fontsize=font_size)
-#         plt.title(title, fontsize=font_size)
-#         plt.grid(True, linestyle='-', linewidth=0.75, alpha=0.7)
-#         plt.gca().xaxis.set_major_formatter(ticker.FormatStrFormatter('%.0f'))
-#         plt.tick_params(axis='x', labelsize=font_size)
-#         plt.tick_params(axis='y', labelsize=font_size)
-#         plt.legend(fontsize=font_size-2)
-#         plt.tight_layout()
-#         plt.show()
+#         print(f"[INFO]   {filter_state} | {peaks_info} | File: {source_file}")
+#
+#     # Overlay baseline data
+#     for bx, by, blabel in baseline_store[ch]:
+#         scale = get_scaling_factor(by, data_list)
+#         print(f"[INFO]   Baseline: {blabel} scaled ×{scale:.2f}")
+#         plt.plot(bx, by * scale, color="orange", lw=2, linestyle="--", label=f"{blabel} ×{scale:.1f}")
+#
+#     plt.xlabel("Index", fontsize=font_size)
+#     plt.ylabel("Counts", fontsize=font_size)
+#     plt.title(title, fontsize=font_size)
+#     plt.grid(True, linestyle='-', linewidth=0.75, alpha=0.7)
+#     plt.gca().xaxis.set_major_formatter(ticker.FormatStrFormatter('%.0f'))
+#     plt.tick_params(axis='x', labelsize=font_size)
+#     plt.tick_params(axis='y', labelsize=font_size)
+#     plt.legend(fontsize=font_size - 2)
+#     plt.tight_layout()
+#     plt.show()
+#
+# # def plot_grouped(data_list, title_prefix, ch):
+# #     global global_plot_index
+# #
+# #     # Grouping disabled — plot all at once
+# #     global_plot_index += 1
+# #     title = title_prefix
+# #
+# #
+# #     plt.figure(figsize=(12, 7))
+# #     for x, y, label in data_list:
+# #         plt.plot(x, y, lw=2, label=label)
+# #
+# #     # Overlay baseline data
+# #     for bx, by, blabel in baseline_store[ch]:
+#
 #
 # # === EXECUTE PLOTS ===
 # plot_grouped(data_store['Filtered']['CH0'], "CH0 Curves (Filtered)", "CH0")
 # plot_grouped(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)", "CH1")
 #
-# if plot_unfiltered:
-#     plot_grouped(data_store['Unfiltered']['CH0'], "CH0 Curves (Unfiltered)", "CH0")
-#     plot_grouped(data_store['Unfiltered']['CH1'], "CH1 Curves (Unfiltered)", "CH1")
-#
-# if plot_raw:
-#     plot_grouped(data_store['Raw']['CH0'], "CH0 Curves (Raw)", "CH0")
-#     plot_grouped(data_store['Raw']['CH1'], "CH1 Curves (Raw)", "CH1")
-#
-#
-#
+# # # Use interactive plotting backend for PyCharm
 # # import matplotlib
 # # matplotlib.use('TkAgg')
 # #
@@ -319,37 +372,42 @@ plot_grouped(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)", "CH1")
 # # import re
 # # import matplotlib.ticker as ticker
 # #
-# # # === Peaks to EXCLUDE ===
-# # exclude_peak_numbers = ["5", "7", "9"]
-# #
-# # # === CONFIG ===
-# # repo_root = Path(__file__).resolve().parents[1]
-# # coic_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_more_peaks_compare_coicdence"
-# # baseline_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_baseline_data_for_coic_comparison"
-# # crop_start_amount = 100
-# # crop_end_amount = 3000
+# # # === CONFIGURATION ===
+# # exclude_peak_numbers = ["5", "7", "9"]  # Peaks to skip entirely
+# # crop_start_amount = 100  # Number of initial points to crop from each data file
+# # crop_end_amount = 3000   # Number of final points to crop
 # # font_size = 20
+# # baseline_multiplier_cap = 10  # Limit on how much we can scale the baseline
 # #
-# # # === Baseline scaling config ===
-# # baseline_multiplier = 5
+# # # File locations — navigate 2 folders up from this file
+# # repo_root = Path(__file__).resolve().parents[2]
+# # coic_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_more_peaks_compare_coicdence"
+# # baseline_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_baseline_data_for_coic_comparison" / "65_7_gain_1_6_pulse_60s"
 # #
-# # # === Plot Toggles ===
+# # # Toggles
 # # plot_unfiltered = False
 # # plot_raw = False
 # #
-# # # === Data storage ===
+# # # === Data Storage ===
 # # data_store = {
 # #     'Filtered': {'CH0': [], 'CH1': []},
 # #     'Unfiltered': {'CH0': [], 'CH1': []},
-# #     'Raw': {'CH0': [], 'CH1': []},
+# #     'Raw': {'CH0': [], 'CH1': []}
 # # }
-# #
-# # # === Load Baseline Data ===
 # # baseline_store = {'CH0': [], 'CH1': []}
+# # label_counts = {}  # Used to append (1), (2), etc. if label repeats
+# # global_plot_index = 0
 # #
+# # print(f"[DEBUG] Baseline directory path: {baseline_data_dir}")
+# # print(f"[DEBUG] Coincidence directory path: {coic_data_dir}")
+# #
+# # # === Load Baseline Files ===
 # # for file_path in baseline_data_dir.glob("*.txt"):
 # #     filename = file_path.name
+# #     print(f"[DEBUG] Checking file: {filename}")
+# #
 # #     if not filename.startswith("CH0@") and not filename.startswith("CH1@"):
+# #         print(f"[SKIPPED] {filename} — does not start with CH0@ or CH1@")
 # #         continue
 # #
 # #     try:
@@ -363,137 +421,132 @@ plot_grouped(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)", "CH1")
 # #     channel = "CH0" if "CH0@" in filename else "CH1"
 # #     label = f"Baseline ({channel})"
 # #     baseline_store[channel].append((indices_cropped, data_cropped, label))
+# #     print(f"[LOADED] Baseline for {channel} from {filename}")
 # #
-# # # === Label counts ===
-# # label_counts = {}
+# # # Summary after loading all baseline files
+# # print("[SUMMARY] Loaded baseline curves:")
+# # for ch in baseline_store:
+# #     print(f"  {ch}: {len(baseline_store[ch])} curves")
 # #
-# # # === Extract peak numbers ===
-# # def extract_peak_numbers(folder_name):
-# #     match = re.search(r"peak(\d+)_and(\d+)", folder_name)
-# #     if match:
-# #         return match.group(1), match.group(2)
-# #     return None, None
+# # # === Extract Peak Numbers from folder names ===
+# # def extract_peaks(folder):
+# #     m = re.search(r"peak(\d+)_and(\d+)", folder)
+# #     return (m.group(1), m.group(2)) if m else (None, None)
 # #
-# # # === Iterate directories ===
+# # # === Load Coincidence Data Files ===
 # # for subfolder in sorted(coic_data_dir.iterdir()):
 # #     if not subfolder.is_dir():
 # #         continue
 # #
-# #     peak1, peak2 = extract_peak_numbers(subfolder.name)
-# #     if not peak1:
-# #         print(f"[SKIPPED] Could not parse peak numbers from {subfolder.name}")
-# #         continue
-# #
-# #     if peak1 in exclude_peak_numbers or peak2 in exclude_peak_numbers:
-# #         print(f"[SKIPPED] {subfolder.name} — peaks excluded: {exclude_peak_numbers}")
+# #     peak1, peak2 = extract_peaks(subfolder.name)
+# #     if not peak1 or peak1 in exclude_peak_numbers or peak2 in exclude_peak_numbers:
+# #         print(f"[SKIPPED] {subfolder.name}")
 # #         continue
 # #
 # #     name_lower = subfolder.name.lower()
-# #     if "filtered" in name_lower:
-# #         filter_state = "Filtered"
+# #
+# #     # Identify if folder is raw/unfiltered/filtered
+# #     if "raw" in name_lower and not plot_raw:
+# #         print(f"[SKIPPED] {subfolder.name} (raw data skipped)")
+# #         continue
 # #     elif "unfiltered" in name_lower:
 # #         filter_state = "Unfiltered"
+# #     elif "filtered" in name_lower:
+# #         filter_state = "Filtered"
 # #     else:
-# #         print(f"[SKIPPED] {subfolder.name} — no 'filtered'/'unfiltered' keyword found, skipping")
+# #         print(f"[SKIPPED] {subfolder.name} (missing filter status)")
 # #         continue
 # #
-# #     print(f"[PROCESSING] {subfolder.name} | Peak {peak1} & {peak2} | {filter_state}")
+# #     print(f"[PROCESSING] {subfolder.name} — Peaks {peak1} & {peak2} — {filter_state}")
 # #
 # #     for file_path in sorted(subfolder.glob("*.txt")):
-# #         filename = file_path.name
-# #         if filename.startswith("Data"):
+# #         fname = file_path.name
+# #         if fname.startswith("Data"):
 # #             continue
 # #
 # #         try:
 # #             data = np.loadtxt(file_path)
-# #             indices_cropped = np.arange(len(data))[crop_start_amount:-crop_end_amount]
+# #             indices = np.arange(len(data))[crop_start_amount:-crop_end_amount]  # keep real indices
 # #             data_cropped = data[crop_start_amount:-crop_end_amount]
+# #             label = f"Peak {peak1} & {peak2})"
+# #             print(f"label: {label}")
+# #             ch = "CH0" if "CH0@" in fname else "CH1"
+# #             key = (filter_state, ch, label)
+# #             label_counts[key] = label_counts.get(key, 0) + 1
+# #             # Add instance number (1), (2), ... if repeated
+# #             if label_counts[key] > 1:
+# #                 label += f" ({label_counts[key]})"
+# #             data_store[filter_state][ch].append((indices, data_cropped, label))
 # #         except Exception as e:
 # #             print(f"[ERROR] Could not load {file_path}: {e}")
-# #             continue
 # #
-# #         label = f"Peak {peak1} & {peak2}"
-# #         channel = "CH0" if "CH0@" in filename else "CH1"
-# #         label_key = (filter_state, channel, label)
+# # # === Compute scale to match baseline to signal ===
+# # def get_scaling_factor(baseline, curves):
+# #     max_baseline = np.max(baseline)
+# #     max_signal = max(np.max(y) for _, y, _ in curves)
+# #     return min((max_signal / max_baseline) if max_baseline else 1, baseline_multiplier_cap)
 # #
-# #         count = label_counts.get(label_key, 0) + 1
-# #         label_counts[label_key] = count
 # #
-# #         if count > 1:
-# #             label = f"{label} ({count})"
 # #
-# #         data_store[filter_state][channel].append((indices_cropped, data_cropped, label))
 # #
-# # # === Baseline scale estimation ===
-# # def get_scaling_factor(baseline_values, coincidence_curves):
-# #     max_baseline = np.max(baseline_values)
-# #     max_signal = max(np.max(values) for _, values, _ in coincidence_curves)
-# #     return max_signal / max_baseline if max_baseline != 0 else 1
 # #
-# # # === Global plot counter ===
-# # global_plot_index = 0
 # #
-# # # === Grouped plotting with conditional baseline overlay ===
-# # def plot_channel_grouped_by_instance(data_list, title_base, channel):
+# #
+# #
+# #
+# #
+# #
+# #
+# #
+# # # === Plotting function ===
+# # def plot_grouped(data_list, title_prefix, ch):
 # #     global global_plot_index
 # #     grouped = {}
 # #
-# #     for indices, values, label in data_list:
-# #         match = re.search(r"\((\d+)\)$", label)
-# #         instance = match.group(1) if match else "1"
-# #         if instance not in grouped:
-# #             grouped[instance] = []
-# #         grouped[instance].append((indices, values, label))
+# #     # Group by instance number (used to split repeated curves for same label)
+# #     for x, y, label in data_list:
+# #         instance = re.search(r"\((\d+)\)$", label)  # finds numbers like (2) at the end of label
+# #         print(f"instance: {instance}")
+# #         key = instance.group(1) if instance else "1"  # default to "1" if no match
+# #         grouped.setdefault(key, []).append((x, y, label))
 # #
+# #     # Plot each instance group separately
 # #     for instance, curves in grouped.items():
 # #         global_plot_index += 1
-# #         title = f"{title_base} — Instance {instance}"
+# #         title = f"{title_prefix} — Instance {instance}"  # shown in plot title
+# #         print(f"instance: {instance}")
 # #         plt.figure(figsize=(12, 7))
 # #
-# #         for indices, values, label in curves:
-# #             plt.plot(indices, values, lw=2, label=label)
+# #         for x, y, label in curves:
+# #             plt.plot(x, y, lw=2, label=label)
+# #             print(f"label: {label}")
 # #
-# #         if global_plot_index == 4:
-# #             for b_indices, b_values, b_label in baseline_store[channel]:
-# #                 scaling_factor = get_scaling_factor(b_values, curves)
-# #                 scaling_factor = min(scaling_factor, 10)
-# #                 print(f"[INFO] Overlaying baseline on plot #{global_plot_index} with scale ×{scaling_factor:.2f}")
-# #                 plt.plot(
-# #                     b_indices,
-# #                     b_values * scaling_factor,
-# #                     lw=2,
-# #                     linestyle='--',
-# #                     color='orange',
-# #                     label=f"{b_label} ×{scaling_factor:.1f}"
-# #                 )
+# #         # Overlay baseline
+# #         print(f"[INFO] Plot #{global_plot_index}: Overlaying {len(baseline_store[ch])} baselines for {ch}")
+# #         for bx, by, blabel in baseline_store[ch]:
+# #             scale = get_scaling_factor(by, curves)
+# #             print(f"[INFO]   {blabel} scaled ×{scale:.2f}")
+# #             plt.plot(bx, by * scale, color="orange", lw=2, label=f"{blabel} ×{scale:.1f}")
 # #
+# #         # Axis and visual formatting
 # #         plt.xlabel("Index", fontsize=font_size)
 # #         plt.ylabel("Counts", fontsize=font_size)
 # #         plt.title(title, fontsize=font_size)
+# #         plt.grid(True, linestyle='-', linewidth=0.75, alpha=0.7)
 # #         plt.gca().xaxis.set_major_formatter(ticker.FormatStrFormatter('%.0f'))
 # #         plt.tick_params(axis='x', labelsize=font_size)
 # #         plt.tick_params(axis='y', labelsize=font_size)
-# #         plt.grid(True, linestyle='-', linewidth=0.75, alpha=0.7)
-# #         plt.legend(fontsize=font_size - 2, loc='best')
+# #         plt.legend(fontsize=font_size-2)
 # #         plt.tight_layout()
 # #         plt.show()
 # #
-# # # === Plot execution ===
-# # plot_channel_grouped_by_instance(data_store['Filtered']['CH0'], "CH0 Curves (Filtered)", "CH0")
-# # plot_channel_grouped_by_instance(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)", "CH1")
-# #
-# # if plot_unfiltered:
-# #     plot_channel_grouped_by_instance(data_store['Unfiltered']['CH0'], "CH0 Curves (Unfiltered)", "CH0")
-# #     plot_channel_grouped_by_instance(data_store['Unfiltered']['CH1'], "CH1 Curves (Unfiltered)", "CH1")
-# #
-# # if plot_raw:
-# #     plot_channel_grouped_by_instance(data_store['Raw']['CH0'], "CH0 Curves (Raw)", "CH0")
-# #     plot_channel_grouped_by_instance(data_store['Raw']['CH1'], "CH1 Curves (Raw)", "CH1")
-# #
+# # # === MAIN EXECUTION ===
+# # plot_grouped(data_store['Filtered']['CH0'], "CH0 Curves (Filtered)", "CH0")
+# # plot_grouped(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)", "CH1")
 # #
 # #
 # # # import matplotlib
-# # # matplotlib.use('TkAgg')
+# # # matplotlib.use('TkAgg')  # For PyCharm interactivity
 # # #
 # # # import numpy as np
 # # # import matplotlib.pyplot as plt
@@ -501,40 +554,42 @@ plot_grouped(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)", "CH1")
 # # # import re
 # # # import matplotlib.ticker as ticker
 # # #
-# # # # === Peaks to EXCLUDE ===
-# # # exclude_peak_numbers = ["5","7", "9"]
-# # #
-# # #
-# # #
-# # #
-# # # # === CONFIG ===
-# # # repo_root = Path(__file__).resolve().parents[1]
-# # # coic_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_more_peaks_compare_coicdence"
-# # # baseline_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_baseline_data_for_coic_comparison"
+# # # # === CONFIGURATION ===
+# # # exclude_peak_numbers = ["5", "7", "9"]
 # # # crop_start_amount = 100
-# # # crop_end_amount = 3150
+# # # crop_end_amount = 3000
 # # # font_size = 20
-# # # # === CONFIG ===
-# # # baseline_multiplier = 5  # <-- Scale baseline to match coincidence profile shape
+# # # baseline_multiplier_cap = 10
 # # #
+# # # repo_root = Path(__file__).resolve().parents[2]
+# # # coic_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_more_peaks_compare_coicdence"
+# # # baseline_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_baseline_data_for_coic_comparison" / "65_7_gain_1_6_pulse_60s"
 # # #
-# # # # === Plot Toggles ===
 # # # plot_unfiltered = False
 # # # plot_raw = False
 # # #
-# # # # === Data storage ===
-# # # data_store = {
-# # #     'Filtered': {'CH0': [], 'CH1': []},
-# # #     'Unfiltered': {'CH0': [], 'CH1': []},
-# # #     'Raw': {'CH0': [], 'CH1': []},
-# # # }
+# # # #========================================================================
+# # # #========================================================================
 # # #
-# # # # === Load Baseline Data ===
+# # #
+# # #
+# # # # === Storage ===
+# # # data_store = {'Filtered': {'CH0': [], 'CH1': []}, 'Unfiltered': {'CH0': [], 'CH1': []}, 'Raw': {'CH0': [], 'CH1': []}}
 # # # baseline_store = {'CH0': [], 'CH1': []}
+# # # label_counts = {}
+# # # global_plot_index = 0
 # # #
+# # # # === DEBUG ===
+# # # print(f"[DEBUG] Baseline directory path: {baseline_data_dir}")
+# # # print(f"[DEBUG] Coincidence directory path: {coic_data_dir}")
+# # #
+# # # # === Load Baseline Files ===
 # # # for file_path in baseline_data_dir.glob("*.txt"):
 # # #     filename = file_path.name
+# # #     print(f"[DEBUG] Checking file: {filename}")
+# # #
 # # #     if not filename.startswith("CH0@") and not filename.startswith("CH1@"):
+# # #         print(f"[SKIPPED] {filename} — does not start with CH0@ or CH1@")
 # # #         continue
 # # #
 # # #     try:
@@ -548,160 +603,102 @@ plot_grouped(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)", "CH1")
 # # #     channel = "CH0" if "CH0@" in filename else "CH1"
 # # #     label = f"Baseline ({channel})"
 # # #     baseline_store[channel].append((indices_cropped, data_cropped, label))
+# # #     print(f"[LOADED] Baseline for {channel} from {filename}")
 # # #
-# # #
-# # # # === Label counts ===
-# # # label_counts = {}
+# # # # === Post-loading summary ===
+# # # print(f"[SUMMARY] Loaded baseline curves:")
+# # # for ch in baseline_store:
+# # #     print(f"  {ch}: {len(baseline_store[ch])} curves")
 # # #
 # # # # === Extract peak numbers ===
-# # # def extract_peak_numbers(folder_name):
-# # #     match = re.search(r"peak(\d+)_and(\d+)", folder_name)
-# # #     if match:
-# # #         return match.group(1), match.group(2)
-# # #     return None, None
+# # # def extract_peaks(folder):
+# # #     m = re.search(r"peak(\d+)_and(\d+)", folder)
+# # #     return (m.group(1), m.group(2)) if m else (None, None)
 # # #
-# # # # === Iterate directories ===
+# # # # === Load Coincidence Data ===
 # # # for subfolder in sorted(coic_data_dir.iterdir()):
 # # #     if not subfolder.is_dir():
 # # #         continue
 # # #
-# # #     peak1, peak2 = extract_peak_numbers(subfolder.name)
-# # #     if not peak1:
-# # #         print(f"[SKIPPED] Could not parse peak numbers from {subfolder.name}")
+# # #     peak1, peak2 = extract_peaks(subfolder.name)
+# # #     if not peak1 or peak1 in exclude_peak_numbers or peak2 in exclude_peak_numbers:
+# # #         print(f"[SKIPPED] {subfolder.name}")
 # # #         continue
 # # #
-# # #     # Exclude peaks logic
-# # #     if peak1 in exclude_peak_numbers or peak2 in exclude_peak_numbers:
-# # #         print(f"[SKIPPED] {subfolder.name} — peaks excluded: {exclude_peak_numbers}")
-# # #         continue
-# # #
-# # #     # Filter state detection
 # # #     name_lower = subfolder.name.lower()
-# # #     if "filtered" in name_lower:
-# # #         filter_state = "Filtered"
+# # #
+# # #     if "raw" in name_lower and not plot_raw:
+# # #         print(f"[SKIPPED] {subfolder.name} (raw data skipped)")
+# # #         continue
 # # #     elif "unfiltered" in name_lower:
 # # #         filter_state = "Unfiltered"
+# # #     elif "filtered" in name_lower:
+# # #         filter_state = "Filtered"
 # # #     else:
-# # #         print(f"[SKIPPED] {subfolder.name} — no 'filtered'/'unfiltered' keyword found, skipping")
+# # #         print(f"[SKIPPED] {subfolder.name} (missing filter status)")
 # # #         continue
 # # #
-# # #     print(f"[PROCESSING] {subfolder.name} | Peak {peak1} & {peak2} | {filter_state}")
-# # #
+# # #     print(f"[PROCESSING] {subfolder.name} — Peaks {peak1} & {peak2} — {filter_state}")
 # # #     for file_path in sorted(subfolder.glob("*.txt")):
-# # #         filename = file_path.name
-# # #
-# # #         if filename.startswith("Data"):
+# # #         fname = file_path.name
+# # #         if fname.startswith("Data"):
 # # #             continue
-# # #
 # # #         try:
 # # #             data = np.loadtxt(file_path)
-# # #             indices_cropped = np.arange(len(data))[crop_start_amount:-crop_end_amount]
+# # #             indices = np.arange(len(data))[crop_start_amount:-crop_end_amount]  # retain original index range
 # # #             data_cropped = data[crop_start_amount:-crop_end_amount]
+# # #             label = f"Peak {peak1} & {peak2}"
+# # #             ch = "CH0" if "CH0@" in fname else "CH1"
+# # #             key = (filter_state, ch, label)
+# # #             label_counts[key] = label_counts.get(key, 0) + 1
+# # #             if label_counts[key] > 1:
+# # #                 label += f" ({label_counts[key]})"
+# # #             data_store[filter_state][ch].append((indices, data_cropped, label))
 # # #         except Exception as e:
 # # #             print(f"[ERROR] Could not load {file_path}: {e}")
-# # #             continue
 # # #
-# # #         # Build and uniquify label
-# # #         label = f"Peak {peak1} & {peak2}"
-# # #         channel = "CH0" if "CH0@" in filename else "CH1"
-# # #         label_key = (filter_state, channel, label)
 # # #
-# # #         count = label_counts.get(label_key, 0) + 1
-# # #         label_counts[label_key] = count
+# # # # === Compute Scaling Factor ===
+# # # def get_scaling_factor(baseline, curves):
+# # #     max_baseline = np.max(baseline)
+# # #     max_signal = max(np.max(y) for _, y, _ in curves)
+# # #     return min((max_signal / max_baseline) if max_baseline else 1, baseline_multiplier_cap)
 # # #
-# # #         if count > 1:
-# # #             label = f"{label} ({count})"
-# # #
-# # #         data_store[filter_state][channel].append((indices_cropped, data_cropped, label))
-# # # def get_scaling_factor(baseline_values, coincidence_curves):
-# # #     """Estimate a scale to bring baseline closer to the range of coincidence curves."""
-# # #     max_baseline = np.max(baseline_values)
-# # #     max_signal = max(np.max(values) for _, values, _ in coincidence_curves)
-# # #
-# # #     if max_baseline == 0:
-# # #         return 1  # Avoid division by zero
-# # #
-# # #     return max_signal / max_baseline
-# # #
-# # # # === Plot helper ===
-# # # def plot_channel(data_list, title_text):
-# # #     if not data_list:
-# # #         print(f"[SKIPPED] {title_text} — no data found")
-# # #         return
-# # #
-# # #     plt.figure(figsize=(12, 7))
-# # #
-# # #     for indices, values, label in data_list:
-# # #         plt.plot(indices, values, lw=2, label=label)
-# # #
-# # #     plt.xlabel("Index", fontsize=font_size)
-# # #     plt.ylabel("Counts", fontsize=font_size)
-# # #     plt.title(title_text, fontsize=font_size)
-# # #     plt.gca().xaxis.set_major_formatter(ticker.FormatStrFormatter('%.0f'))
-# # #     plt.tick_params(axis='x', labelsize=font_size)
-# # #     plt.tick_params(axis='y', labelsize=font_size)
-# # #     plt.grid(True, linestyle='-', linewidth=0.75, alpha=0.7)
-# # #     plt.legend(fontsize=font_size-2, loc='best')
-# # #     plt.tight_layout()
-# # #     plt.show()
-# # #
-# # # def plot_channel_grouped_by_instance(data_list, title_base, channel):
+# # # # === Group & Plot ===
+# # # def plot_grouped(data_list, title_prefix, ch):
+# # #     global global_plot_index
 # # #     grouped = {}
-# # #     for indices, values, label in data_list:
-# # #         match = re.search(r"\((\d+)\)$", label)
-# # #         instance = match.group(1) if match else "1"
 # # #
-# # #         if instance not in grouped:
-# # #             grouped[instance] = []
-# # #         grouped[instance].append((indices, values, label))
+# # #     for x, y, label in data_list:
+# # #         instance = re.search(r"\((\d+)\)$", label)
+# # #         key = instance.group(1) if instance else "1"
+# # #         grouped.setdefault(key, []).append((x, y, label))
 # # #
 # # #     for instance, curves in grouped.items():
-# # #         title = f"{title_base} — Instance {instance}"
-# # #
+# # #         global_plot_index += 1
+# # #         title = f"{title_prefix} — Instance {instance}"
 # # #         plt.figure(figsize=(12, 7))
+# # #         for x, y, label in curves:
+# # #             plt.plot(x, y, lw=2, label=label)
 # # #
-# # #         # Plot coincidence data
-# # #         for indices, values, label in curves:
-# # #             plt.plot(indices, values, lw=2, label=label)
-# # #
-# # #         # Determine adaptive baseline scaling
-# # #         for b_indices, b_values, b_label in baseline_store[channel]:
-# # #             scaling_factor = get_scaling_factor(b_values, curves)
-# # #
-# # #             # Optional: Cap scaling to avoid extreme blow-up
-# # #             scaling_factor = min(scaling_factor, 10)
-# # #
-# # #             plt.plot(
-# # #                 b_indices,
-# # #                 b_values * scaling_factor,
-# # #                 lw=2,
-# # #                 linestyle='--',
-# # #                 color='orange',
-# # #                 label=f"{b_label} ×{scaling_factor:.1f}"
-# # #             )
+# # #         # Always overlay baseline if available
+# # #         print(f"[INFO] Plot #{global_plot_index}: Overlaying {len(baseline_store[ch])} baselines for {ch}")
+# # #         for bx, by, blabel in baseline_store[ch]:
+# # #             scale = get_scaling_factor(by, curves)
+# # #             print(f"[INFO]   {blabel} scaled ×{scale:.2f}")
+# # #             plt.plot(bx, by * scale, color="orange", lw=2, label=f"{blabel} ×{scale:.1f}")
 # # #
 # # #         plt.xlabel("Index", fontsize=font_size)
 # # #         plt.ylabel("Counts", fontsize=font_size)
 # # #         plt.title(title, fontsize=font_size)
+# # #         plt.grid(True, linestyle='-', linewidth=0.75, alpha=0.7)
 # # #         plt.gca().xaxis.set_major_formatter(ticker.FormatStrFormatter('%.0f'))
 # # #         plt.tick_params(axis='x', labelsize=font_size)
 # # #         plt.tick_params(axis='y', labelsize=font_size)
-# # #         plt.grid(True, linestyle='-', linewidth=0.75, alpha=0.7)
-# # #         plt.legend(fontsize=font_size - 2, loc='best')
+# # #         plt.legend(fontsize=font_size-2)
 # # #         plt.tight_layout()
 # # #         plt.show()
 # # #
-# # #
-# # # # === Plot Filtered grouped ===
-# # # plot_channel_grouped_by_instance(data_store['Filtered']['CH0'], "CH0 Curves (Filtered)", "CH0")
-# # # plot_channel_grouped_by_instance(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)", "CH1")
-# # #
-# # # # === Plot Unfiltered grouped ===
-# # # if plot_unfiltered:
-# # #     plot_channel_grouped_by_instance(data_store['Unfiltered']['CH0'], "CH0 Curves (Unfiltered)", "CH0")
-# # #     plot_channel_grouped_by_instance(data_store['Unfiltered']['CH1'], "CH1 Curves (Unfiltered)", "CH1")
-# # #
-# # # # === Plot Raw grouped ===
-# # # if plot_raw:
-# # #     plot_channel_grouped_by_instance(data_store['Raw']['CH0'], "CH0 Curves (Raw)", "CH0")
-# # #     plot_channel_grouped_by_instance(data_store['Raw']['CH1'], "CH1 Curves (Raw)", "CH1")
+# # # # === EXECUTE PLOTS ===
+# # # plot_grouped(data_store['Filtered']['CH0'], "CH0 Curves (Filtered)", "CH0")
+# # # plot_grouped(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)", "CH1")
