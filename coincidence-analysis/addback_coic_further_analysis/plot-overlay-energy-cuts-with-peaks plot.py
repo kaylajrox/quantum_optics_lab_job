@@ -24,7 +24,7 @@ filenames = [
 ]
 
 # === PATH SETUP ===
-repo_root = Path(__file__).resolve().parents[1]
+repo_root = Path(__file__).resolve().parents[2]
 coic_directory = repo_root / "data-photon-counts-SiPM" / coic_data_folder_name / coic_baseline_data
 peaks_to_compare_data_directory = repo_root / "data-photon-counts-SiPM" / peak_baseline_data_folder_name / peak_baseline_data
 

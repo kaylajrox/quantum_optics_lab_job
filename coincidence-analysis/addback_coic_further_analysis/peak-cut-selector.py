@@ -14,7 +14,7 @@ crop_end_amount = 3000
 font_size = 20
 baseline_multiplier_cap = 10
 
-repo_root = Path(__file__).resolve().parents[1]
+repo_root = Path(__file__).resolve().parents[2]
 coic_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_more_peaks_compare_coicdence"
 baseline_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_baseline_data_for_coic_comparison" / "65_7_gain_1_6_pulse_60s"
 
