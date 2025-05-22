@@ -29,6 +29,7 @@ global_plot_index = 0
 
 # === DEBUG ===
 print(f"[DEBUG] Baseline directory path: {baseline_data_dir}")
+print(f"[DEBUG] Coincidence directory path: {coic_data_dir}")
 
 # === Load Baseline Files ===
 for file_path in baseline_data_dir.glob("*.txt"):
@@ -88,8 +89,8 @@ for subfolder in sorted(coic_data_dir.iterdir()):
             continue
         try:
             data = np.loadtxt(file_path)
+            indices = np.arange(len(data))[crop_start_amount:-crop_end_amount]  # retain original index range
             data_cropped = data[crop_start_amount:-crop_end_amount]
-            indices = np.arange(len(data_cropped))
             label = f"Peak {peak1} & {peak2}"
             ch = "CH0" if "CH0@" in fname else "CH1"
             key = (filter_state, ch, label)
@@ -99,6 +100,7 @@ for subfolder in sorted(coic_data_dir.iterdir()):
             data_store[filter_state][ch].append((indices, data_cropped, label))
         except Exception as e:
             print(f"[ERROR] Could not load {file_path}: {e}")
+
 
 # === Compute Scaling Factor ===
 def get_scaling_factor(baseline, curves):
@@ -128,7 +130,7 @@ def plot_grouped(data_list, title_prefix, ch):
         for bx, by, blabel in baseline_store[ch]:
             scale = get_scaling_factor(by, curves)
             print(f"[INFO]   {blabel} scaled ×{scale:.2f}")
-            plt.plot(bx, by * scale, linestyle="--", color="orange", lw=2, label=f"{blabel} ×{scale:.1f}")
+            plt.plot(bx, by * scale, color="orange", lw=2, label=f"{blabel} ×{scale:.1f}")
 
         plt.xlabel("Index", fontsize=font_size)
         plt.ylabel("Counts", fontsize=font_size)
@@ -144,14 +146,14 @@ def plot_grouped(data_list, title_prefix, ch):
 # === EXECUTE PLOTS ===
 plot_grouped(data_store['Filtered']['CH0'], "CH0 Curves (Filtered)", "CH0")
 plot_grouped(data_store['Filtered']['CH1'], "CH1 Curves (Filtered)", "CH1")
-
-if plot_unfiltered:
-    plot_grouped(data_store['Unfiltered']['CH0'], "CH0 Curves (Unfiltered)", "CH0")
-    plot_grouped(data_store['Unfiltered']['CH1'], "CH1 Curves (Unfiltered)", "CH1")
-
-if plot_raw:
-    plot_grouped(data_store['Raw']['CH0'], "CH0 Curves (Raw)", "CH0")
-    plot_grouped(data_store['Raw']['CH1'], "CH1 Curves (Raw)", "CH1")
+#
+# if plot_unfiltered:
+#     plot_grouped(data_store['Unfiltered']['CH0'], "CH0 Curves (Unfiltered)", "CH0")
+#     plot_grouped(data_store['Unfiltered']['CH1'], "CH1 Curves (Unfiltered)", "CH1")
+#
+# if plot_raw:
+#     plot_grouped(data_store['Raw']['CH0'], "CH0 Curves (Raw)", "CH0")
+#     plot_grouped(data_store['Raw']['CH1'], "CH1 Curves (Raw)", "CH1")
 
 
 

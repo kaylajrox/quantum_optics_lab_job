@@ -73,6 +73,8 @@ for (channel, structure), files in file_groups.items():
 
         data = np.loadtxt(file_path)
         if crop_data:
+            indices = np.arange(len(data))
+            indices_cropped = indices[crop_start_amount:-crop_end_amount]
             data = data[crop_start_amount:-crop_end_amount]
 
         peak_value = np.max(data)
@@ -104,7 +106,7 @@ for (channel, structure), files in file_groups.items():
 
         # Plot curve
         x_vals = np.arange(len(data))
-        plt.plot(x_vals, data, label=f"{coincidence}, {correlation_time}", linewidth=3)
+        plt.plot(indices_cropped, data, label=f"{coincidence}, {correlation_time}", linewidth=3)
 
         # Plot weighted mean vertical line
         plt.axvline(x=weighted_mean_index, color='gray', linestyle='--', linewidth=2)
