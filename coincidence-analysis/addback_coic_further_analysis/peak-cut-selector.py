@@ -7,12 +7,20 @@ from pathlib import Path
 import re
 import matplotlib.ticker as ticker
 
+#==============================================================================
+#==============================================================================
+#==================== USER DEFINED PARAMETERS   ===============================
+#==============================================================================
+#==============================================================================
+
 # === CONFIGURATION ===
-exclude_peak_numbers = ["5", "7", "9"]  # Peaks to exclude
+exclude_peak_numbers = ["3","5", "7", "9"]  # Peaks to exclude
 crop_start_amount = 100  # How much to crop from start of signal
 crop_end_amount = 3000  # How much to crop from end of signal
 font_size = 20  # Font size for plots
-baseline_multiplier_cap = 10  # Max allowed scaling of baseline overlay
+
+# change this to compare overlay with smaller peak heights
+baseline_multiplier_cap = 2  # Max allowed scaling of baseline overlay
 
 # Paths to data directories
 repo_root = Path(__file__).resolve().parents[2]
@@ -22,7 +30,11 @@ baseline_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_baseline_d
 # Flags to enable/disable plotting of data types
 plot_unfiltered = False
 plot_raw = False
-
+#==============================================================================
+#==============================================================================
+#================================== Actual Code ===============================
+#==============================================================================
+#==============================================================================
 # === DATA STORAGE ===
 data_store = {
     'Filtered': {'CH0': [], 'CH1': []},
@@ -138,9 +150,14 @@ def plot_grouped(data_list, title_prefix, ch):
 
     plt.figure(figsize=(12, 7))
 
-    for x, y, label in data_list:
+    # Sort curves by second peak number (extracted from label)
+    def get_second_peak(label):
+        match = re.search(r'Peak \d+ & (\d+)', label)
+        return int(match.group(1)) if match else float('inf')
+
+    # Sort before plotting
+    for x, y, label in sorted(data_list, key=lambda item: get_second_peak(item[2])):
         plt.plot(x, y, lw=2, label=label)
-        print(f"[INFO]   Label: {label}")
 
     for bx, by, blabel in baseline_store[ch]:
         scale = get_scaling_factor(by, data_list)
