@@ -12,32 +12,32 @@ font_size= 24
 
 
 # Define the path to the CSV file
-script_dir = Path(__file__).resolve().parent
+script_dir = Path(__file__).resolve().parent.parent
 file_path = script_dir / 'processed_peak_data.csv'
 
 # Load CSV
 data = pd.read_csv(file_path)
 
 # Convert correlation time (e.g., "100ns") to integer
-data['Correlation Time (ns)'] = data['Correlation Time'].str.replace('ns', '', regex=False).astype(int)
+data['correlation_time'] = data['correlation_time'].str.replace('ns', '', regex=False).astype(int)
 
 # Separate by state
-filtered_data = data[data['State'] == 'filtered']
-unfiltered_data = data[data['State'] == 'unfiltered']
+filtered_data = data[data['state'] == 'filtered']
+unfiltered_data = data[data['state'] == 'unfiltered']
 
 # Plot function
 def plot_total_counts(df, title):
     plt.figure(figsize=(10, 6))
-    for coincidence, group in df.groupby('Coincidence'):
-        group = group.sort_values('Correlation Time (ns)')
-        plt.plot(group['Correlation Time (ns)'], group['Total Counts'], marker='o', label=coincidence, linewidth=2)
+    for coincidence, group in df.groupby('coincidence'):
+        group = group.sort_values('correlation_time')
+        plt.plot(group['correlation_time'], group['total_counts'], marker='o', label=coincidence, linewidth=2)
 
     plt.xlabel('Correlation Time (ns)',fontsize=font_size)
-    plt.ylabel('Total Counts',fontsize=font_size)
+    plt.ylabel('total_counts',fontsize=font_size)
     plt.tick_params(axis='x', labelsize=font_size)
     plt.tick_params(axis='y', labelsize=font_size)
     plt.title(title,fontsize=font_size)
-    plt.legend(title='Coincidence')
+    plt.legend(title='coincidence')
     plt.grid(True)
     plt.tight_layout()
     plt.show()

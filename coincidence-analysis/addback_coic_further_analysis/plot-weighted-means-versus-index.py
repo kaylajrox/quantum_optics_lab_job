@@ -18,8 +18,11 @@ title_unfiltered = "Unfiltered: Mean Index versus CH1 Peak Index"
 y_axis_label = "Weighted Mean Index"
 x_axis_label = "CH1 Peak Number"
 
-# Load the CSV
-df = pd.read_csv("./processed_peak_data.csv")
+from pathlib import Path
+
+# Set path to one level up
+csv_path = Path(__file__).resolve().parent.parent / "processed_peak_data.csv"
+df = pd.read_csv(csv_path)
 
 # Filter by state
 df_filtered = df[df['state'] == 'filtered'].reset_index(drop=True)
@@ -34,7 +37,7 @@ import numpy as np
 plt.figure(figsize=(10, 6))
 
 x_vals = df_filtered.index.values + 2  # start from peak 2 (no data for 1)
-y_vals = df_filtered['Weighted Mean Time'].values
+y_vals = df_filtered['weighted_mean_time'].values
 
 # Plot the data
 plt.plot(x_vals, y_vals, 'o-', color='blue', linewidth=3)
@@ -71,12 +74,12 @@ plt.show()
 plt.figure(figsize=(10, 6))
 plt.plot(
     df_unfiltered.index+1,
-    df_unfiltered['Weighted Mean Time'],
+    df_unfiltered['weighted_mean_time'],
     's--', color='orange', linewidth=3
 )
 
 previous_y = None
-for i, y in enumerate(df_unfiltered['Weighted Mean Time']):
+for i, y in enumerate(df_unfiltered['weighted_mean_time']):
     if i == len(df_unfiltered) - 1:
         offset = -font_height_unfiltered
         va = 'top'
