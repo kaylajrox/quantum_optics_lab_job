@@ -11,7 +11,7 @@ import matplotlib.ticker as ticker
 def plot_spacing_between_peaks():
     # === Paths Setup ===
     script_dir = Path(__file__).resolve().parent
-    repo_root = script_dir.parent
+    repo_root = script_dir.parent.parent
     results_dir = repo_root / 'results-from-generated-data'
     data_file = results_dir / 'results_spacing_from_slope.csv'
 

@@ -13,8 +13,8 @@ script_name = Path(__file__).name  # ✅ Provenance tracking
 # === SETTINGS ===
 include_second_peaks = [3, 4, 5, 6, 7, 8]
 crop_data = True
-crop_start_amount = 600
-crop_end_amount = 3100
+crop_start_amount = 100
+crop_end_amount = 3000
 data_directory = "20250507_more_peaks_compare_coicdence"
 font_size = 24
 font_size_legend = 14
