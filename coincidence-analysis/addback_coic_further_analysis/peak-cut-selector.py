@@ -17,10 +17,10 @@ import matplotlib.ticker as ticker
 exclude_peak_numbers = ["3","5", "7", "9"]  # Peaks to exclude
 crop_start_amount = 100  # How much to crop from start of signal
 crop_end_amount = 3000  # How much to crop from end of signal
-font_size = 20  # Font size for plots
+font_size = 24  # Font size for plots
 
 # change this to compare overlay with smaller peak heights
-baseline_multiplier_cap = 2  # Max allowed scaling of baseline overlay
+baseline_multiplier_cap = 10  # Max allowed scaling of baseline overlay
 
 # Paths to data directories
 repo_root = Path(__file__).resolve().parents[2]
