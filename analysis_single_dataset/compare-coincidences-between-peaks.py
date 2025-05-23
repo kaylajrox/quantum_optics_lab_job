@@ -1,3 +1,8 @@
+'''The script is designed to compare filtered and original datasets
+for CH0 and CH1 channels by plotting them side-by-side. It dynamically gathers
+files, processes the data, and visualizes the results with clear distinctions
+between filtered and original data.'''
+
 import matplotlib
 matplotlib.use('TkAgg')  # For PyCharm interactivity
 

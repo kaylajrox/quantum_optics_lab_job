@@ -16,15 +16,15 @@ coic_baseline_data = "peak4_and4_750ns_correlation_window_65_7_gain_1_6_pulse_60
 peak_baseline_data = "65_7_gain_1_6_pulse_60s"
 
 filenames = [
-    ("CH1@DT5720B_75_EspectrumF_peak_4_and4_750_ns_20250507_151921.txt", "CH1"),
+    #("CH1@DT5720B_75_EspectrumF_peak_4_and4_750_ns_20250507_151921.txt", "CH1"),
     ("CH0@DT5720B_75_EspectrumF_peak_4_and4_750_ns_20250507_151921.txt", "CH0"),
-    ("0@AddBack_EspectrumF_peak_4_and4_750_ns_20250507_151921.txt", "AddBack"),
+    #("0@AddBack_EspectrumF_peak_4_and4_750_ns_20250507_151921.txt", "AddBack"),
     ("CH0@DT5720B_75_EspectrumR_65_7_gain_1_6V_pulse_60s_05_20250507_145259.txt", "CH0 original"),
-    ("CH1@DT5720B_75_EspectrumR_65_7_gain_1_6V_pulse_60s_05_20250507_145259.txt", "CH1 original")
+    #("CH1@DT5720B_75_EspectrumR_65_7_gain_1_6V_pulse_60s_05_20250507_145259.txt", "CH1 original")
 ]
 
 # === PATH SETUP ===
-repo_root = Path(__file__).resolve().parents[1]
+repo_root = Path(__file__).resolve().parents[2]
 coic_directory = repo_root / "data-photon-counts-SiPM" / coic_data_folder_name / coic_baseline_data
 peaks_to_compare_data_directory = repo_root / "data-photon-counts-SiPM" / peak_baseline_data_folder_name / peak_baseline_data
 
