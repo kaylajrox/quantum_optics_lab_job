@@ -3,3 +3,4 @@
 - use the correct data table to make a new comparison of spacing between the peaks for each voltage (y axis the spacing and x axis the gain voltage)
 # TODO put the processed data from coincidence in results folder outputs there
 # TODO auto generate plot images to go into a separate folder so they are easier to retrieve
+# TODO finish detailed readme with the images that explain the code results, add images showing off features like peak-selector
