@@ -30,8 +30,8 @@ else:
 # Parameters
 # ========================================
 data_dir = 'data-photon-counts-SiPM/20250428_more_light'
-pulse_voltages_to_plot = [1.3, 1.6]
-gain_voltages_to_plot = [ 65.7,65.8, 65.9, 66.0]
+pulse_voltages_to_plot = [1.6]
+gain_voltages_to_plot = [ 65.7]
 crop_off_start = 100
 crop_off_end = 3000
 vertical_lines = False
