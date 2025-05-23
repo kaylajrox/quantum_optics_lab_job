@@ -163,72 +163,49 @@ output_file = "peak_data.csv"  # specify the file path where you want to store t
 for channel, channel_data in data_by_channel.items():
     voltages_sorted = sorted(channel_data.keys())
     n_voltages = len(voltages_sorted)
-    n_cols = 3
-    n_rows = math.ceil(n_voltages / n_cols)
+    # Ensure there are voltages to plot
+    if n_voltages > 0:
+        n_rows = math.ceil(n_voltages / n_cols)
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 4 * n_rows))
-    axes = axes.flatten()
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 4 * n_rows))
+        axes = axes.flatten()
 
-    for idx, gain_v in enumerate(voltages_sorted):
-        ax = axes[idx]
-        voltage_data = channel_data[gain_v]
-        #pulse_v = pulse_by_voltage[channel][gain_v]
+        for idx, gain_v in enumerate(voltages_sorted):
+            ax = axes[idx]
+            voltage_data = channel_data[gain_v]
+            pulse_v = pulse_by_voltage[channel][gain_v]
 
-        for ld_type, style in zip(["light", "dark"], ["solid", (0, (4, 2))]):
-            if ld_type in voltage_data:
-                label = f"{channel} {ld_type}"
-                color = "black" if ld_type == "dark" else ("tab:blue" if channel == "CH0" else "tab:green")
+            for ld_type, style in zip(["light", "dark"], ["solid", (0, (4, 2))]):
+                if ld_type in voltage_data:
+                    label = f"{channel} {ld_type}"
+                    color = "black" if ld_type == "dark" else ("tab:blue" if channel == "CH0" else "tab:green")
+                    find_and_label_peaks(
+                        voltage_data[ld_type],
+                        ax,
+                        label=label,
+                        crop_off_start=crop_off_start,
+                        crop_off_end=crop_off_end,
+                        color=color,
+                        style=style,
+                        vertical_lines=vertical_lines,
+                        print_peaks=(ld_type == "light"),
+                        channel=channel,
+                        gain_voltage=gain_v,
+                        pulse_voltage=pulse_v,
+                        output_file=f"generated_peak_data_with_dark/peak_data_gain_voltage{gain_v}V_pulse_height{pulse_v}V.csv"
+                    )
 
-                # Get pulse voltage directly from file or from previously saved value
-                pulse_v = pulse_by_voltage[channel][gain_v]
+            ax.set_title(f"{channel} — {gain_v} V gain, {pulse_v} V pulse", fontsize=10)
+            ax.set_xlabel("Index")
+            ax.set_ylabel("Counts")
+            ax.grid(True)
+            ax.legend(fontsize=8)
 
-                find_and_label_peaks(
-                    voltage_data[ld_type],
-                    ax,
-                    label=label,
-                    crop_off_start=crop_off_start,
-                    crop_off_end=crop_off_end,
-                    color=color,
-                    style=style,
-                    vertical_lines=vertical_lines,
-                    print_peaks=(ld_type == "light"),
-                    channel=channel,
-                    gain_voltage=gain_v,
-                    pulse_voltage=pulse_v,
-                    output_file=f"dark/generated_peak_data_with_dark/peak_data_gain_voltage{gain_v}V_pulse_height{pulse_v}V.csv"
-                )
+        for j in range(idx + 1, len(axes)):
+            fig.delaxes(axes[j])
 
-                ax.set_title(f"{channel} — {gain_v} V gain, {pulse_v} V pulse", fontsize=10)
-
-        # for ld_type, style in zip(["light", "dark"], ["solid", (0, (4, 2))]):
-        #     if ld_type in voltage_data:
-        #         label = f"{channel} {ld_type}"
-        #         color = "black" if ld_type == "dark" else ("tab:blue" if channel == "CH0" else "tab:green")
-        #         find_and_label_peaks(
-        #             voltage_data[ld_type],
-        #             ax,
-        #             label=label,
-        #             crop_off_start=crop_off_start,
-        #             crop_off_end=crop_off_end,
-        #             color=color,
-        #             style=style,
-        #             vertical_lines=vertical_lines,
-        #             print_peaks=(ld_type == "light"),
-        #             channel=channel,
-        #             gain_voltage=gain_v,
-        #             pulse_voltage=pulse_v,
-        #             output_file=f"generated_peak_data_with_dark/peak_data_gain_voltage{gain_v}V_pulse_height{pulse_v}V.csv"  # Different file for each plot
-        #         )
-
-        ax.set_title(f"{channel} — {gain_v} V gain, {pulse_v} V pulse", fontsize=10)
-        ax.set_xlabel("Index")
-        ax.set_ylabel("Counts")
-        ax.grid(True)
-        ax.legend(fontsize=8)
-
-    for j in range(idx + 1, len(axes)):
-        fig.delaxes(axes[j])
-
-    fig.suptitle(f"{channel} — Light vs Dark per Voltage", fontsize=18)
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plt.show()
+        fig.suptitle(f"{channel} — Light vs Dark per Voltage", fontsize=18)
+        plt.tight_layout(rect=[0, 0, 1, 0.95])
+        plt.show()
+    else:
+        print(f"[WARNING] No voltages found for channel {channel}. Skipping plot.")

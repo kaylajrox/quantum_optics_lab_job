@@ -13,23 +13,25 @@ import matplotlib.ticker as ticker
 #==============================================================================
 #==============================================================================
 
-# === CONFIGURATION ===
-exclude_peak_numbers = ["3","5", "7", "9"]  # Peaks to exclude
-crop_start_amount = 100  # How much to crop from start of signal
-crop_end_amount = 3000  # How much to crop from end of signal
-font_size = 20  # Font size for plots
-
-# change this to compare overlay with smaller peak heights
-baseline_multiplier_cap = 2  # Max allowed scaling of baseline overlay
-
-# Paths to data directories
+# === DIRECTORY CONFIGURATION ===
 repo_root = Path(__file__).resolve().parents[2]
 coic_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_more_peaks_compare_coicdence"
 baseline_data_dir = repo_root / "data-photon-counts-SiPM" / "20250507_baseline_data_for_coic_comparison" / "65_7_gain_1_6_pulse_60s"
 
+
+# WARNING: CAN NEVER EXCLUDE PEAK 4 (ORIGINAL PEAK YOUR ARE COMPARING TO)
+exclude_peak_numbers = ["1","2","5","7","9","10"]  # Peaks to exclude
+crop_start_amount = 145  # How much to crop from start of signal
+crop_end_amount = 3200  # How much to crop from end of signal
+font_size = 24  # Font size for plots
+
+# change this to compare overlay with smaller peak heights
+baseline_multiplier_cap = 5  # Max allowed scaling of baseline overlay
+
 # Flags to enable/disable plotting of data types
 plot_unfiltered = False
 plot_raw = False
+
 #==============================================================================
 #==============================================================================
 #================================== Actual Code ===============================
@@ -56,8 +58,18 @@ for file_path in baseline_data_dir.glob("*.txt"):
         continue
     try:
         data = np.loadtxt(file_path)
+        # Perform cropping
         indices_cropped = np.arange(len(data))[crop_start_amount:-crop_end_amount]
         data_cropped = data[crop_start_amount:-crop_end_amount]
+
+        # Check if cropped data is empty
+        if data_cropped.size == 0:
+            print(
+                f"[WARNING] Cropped data is empty after applying crop_start_amount={crop_start_amount} and crop_end_amount={crop_end_amount}. Skipping file.")
+        else:
+            # Round data to the nearest integer
+            data_cropped = np.round(data_cropped).astype(int)
+            print(f"[DEBUG] Cropped data (rounded): {data_cropped[:10]}... (size: {data_cropped.size})")
         channel = "CH0" if "CH0@" in filename else "CH1"
         label = f"Baseline ({channel})"
         baseline_store[channel].append((indices_cropped, data_cropped, label))
@@ -157,12 +169,12 @@ def plot_grouped(data_list, title_prefix, ch):
 
     # Sort before plotting
     for x, y, label in sorted(data_list, key=lambda item: get_second_peak(item[2])):
-        plt.plot(x, y, lw=2, label=label)
+        plt.plot(x, y, lw=3, label=label)
 
     for bx, by, blabel in baseline_store[ch]:
         scale = get_scaling_factor(by, data_list)
         print(f"[INFO]   Baseline: {blabel} scaled ×{scale:.2f}")
-        plt.plot(bx, by * scale, color="orange", lw=2, linestyle="--", label=f"{blabel} ×{scale:.1f}")
+        plt.plot(bx, by * scale, color="orange", lw=2, label=f"{blabel} ×{scale:.1f}")
 
     plt.xlabel("Index", fontsize=font_size)
     plt.ylabel("Counts", fontsize=font_size)
@@ -171,7 +183,7 @@ def plot_grouped(data_list, title_prefix, ch):
     plt.gca().xaxis.set_major_formatter(ticker.FormatStrFormatter('%.0f'))
     plt.tick_params(axis='x', labelsize=font_size)
     plt.tick_params(axis='y', labelsize=font_size)
-    plt.legend(fontsize=font_size - 2)
+    plt.legend(fontsize=font_size - 7)
     plt.tight_layout()
     plt.show()
 
