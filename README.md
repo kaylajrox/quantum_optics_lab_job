@@ -1,6 +1,6 @@
 # What's This Project For?
 
-This project analyzes SiPM (Silicon Photomultiplier) photon count data from CoMPASS, a physics data acquisition system. You're looking for:
+This project analyzes SiPM (Silicon Photomultiplier) photon count data from CoMPASS, a physics data acquisition system. We're looking for:
 
 * Peaks in photon count curves, at different gain and pulse voltages.
 
@@ -16,21 +16,28 @@ There are two main analysis types:
 
 #️ What to Run — Step-by-Step
 
-1. Run the Main Script
+1. Setup the parameters in the main script
 
-> `run_analysis_gui.py`
+> `plot-fit-peaks-SiPM-data.py`
 
-* Input: 
-	
-	* `gain_voltages_to_plot` = [65.7] → only plots those gain voltages
+* data_dir = 'data-photon-counts-SiPM/20250428_more_light'	→ directory of data files 
+* pulse_voltages_to_plot = [1.6]	→ only plots those pulse voltages
+* gain_voltages_to_plot = [ 65.7]	→ only plots those gain voltages
+* crop_off_start = 100	→ clean noisy start
+* crop_off_end = 3000	→ clean noisy end
+* vertical_lines = False	→ whether to have vertical lines
+* counts_threshold = 100	→ tune peak detection
+* peak_spacing_threshold = 16	→ tune peak detection
+* sigma = 3.6	→ smoothness of curve
+* pulse_color_map = {1.0: 'black', 1.1: 'darkblue', 1.3: 'green',1.6: 'orange', 2.0: 'deeppink', 2.3: 'red',} → 
+* manual_peak_indices = {('CH0', 65.7, 1.6): [140, 178, 553, 590], ('CH1', 65.7, 1.6): [130, 177],} → force specific peaks to be counted if auto fails 
 
-	* `crop_off_start`, crop_off_end → clean noisy start/end
+* data_by_channel = {"CH0": defaultdict(lambda: defaultdict(list)),                   "CH1": defaultdict(lambda: defaultdict(list))}pulse_by_voltage = defaultdict(lambda: defaultdict(float)) → 
 
-	* `counts_threshold`, `peak_spacing_threshold` → tune peak detection
+2. Run plot_index_vs_peak_slope_spacing_table.py to generate the index vs peak data. This python file will plot the index vs peak data for each channel and save the plots in the folder "index_vs_peak_data_results". It will also save the data in a csv file in the same folder.
 
-	* `sigma` → smoothness of curve
+3. Run plot_spacing_between_peaks.py to generate the spacing vs peak data. This python file will plot the spacing vs peak data for each channel and save the plots in the folder "spacing_vs_peak_data_results". It will also save the data in a csv file in the same folder.
 
-	* `manual_peak_indices` → force specific peaks to be counted if auto fails
 
 * Output:
 
@@ -46,16 +53,6 @@ There are two main analysis types:
 
 	* Plots curves and saves peak index data
 
-* Before running:
-
-	* Make sure `generated_peak_data_results`/ is empty (delete old files first)
-
-	* Set correct data_dir in the script (e.g., '20250428_more_light')
-
-	* You can tweak smoothing, peak threshold, etc.
-	
-
-
 # Optional: Dark vs Light Comparison
 
 * Use script plot_light_vs_dark_counts_pulse_height_vary_gain_voltage_loop_subdirectory.py
@@ -68,7 +65,7 @@ Each folder is named like:
 
 > 65_7_gain_1_1_pulse_300s
 
-You can extract:
+The script extracts:
 
 * Gain: 65.7 V
 
@@ -80,7 +77,7 @@ For coincidence measurements:
 
 > peak4_and8_50ns_correlation_window_65_7_gain_1_6_pulse_60s_filtered
 
-You can extract:
+Extracts:
 
 * Peaks: 4 (main) and 8 (comparison)
 
@@ -105,7 +102,7 @@ You can extract:
 	
 In single-channel-analysis:
 	
-	* `plot_index_vs_peak.py`
+	* `plot_index_vs_peak_slope_spacing_table.py`
 
 		* Reads peak data from `generated_peak_data_results`/
 
@@ -113,7 +110,7 @@ In single-channel-analysis:
 
 		* Calculates slope of each curve (i.e., peak spacing trend)
 
-	* `spacing_between_peaks`.py
+	* `plot_spacing_between_peaks.py`
 
 		* Also uses peak data
 
